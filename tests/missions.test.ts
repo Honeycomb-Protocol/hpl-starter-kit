@@ -2,11 +2,7 @@ import * as web3 from "@solana/web3.js";
 import createEdgeClient, {
   Character,
   CharacterModel,
-  Currency,
-  HolderStatusEnum,
-  Mission,
   MissionPool,
-  PermissionedCurrencyKindEnum,
   Profile,
   Project,
   RewardKind,
@@ -21,11 +17,10 @@ import {
   HPL_HIVE_CONTROL_PROGRAM,
   Honeycomb,
   HoneycombProject,
-  METADATA_PROGRAM_ID,
-  PROGRAM_ID,
   VAULT,
   identityModule,
 } from "@honeycomb-protocol/hive-control";
+import { PROGRAM_ID as METADATA_PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
 import { Metaplex, keypairIdentity } from "@metaplex-foundation/js";
 import { createNewTree, mintOneCNFT } from "../utils";
 import { TokenStandard } from "@metaplex-foundation/mpl-bubblegum";

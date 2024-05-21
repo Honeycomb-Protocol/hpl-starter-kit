@@ -712,6 +712,11 @@
   resolved "https://registry.yarnpkg.com/@honeycomb-protocol/nectar-missions/-/nectar-missions-0.1.45-beta.4.tgz#15a6500124a6f40084ccf84c673dc7221cb6a3a8"
   integrity sha512-9mapYCp4If+WGEvbs0ttBPT5HMDIsZn0YDFVBwozniiVfQRcyVpdBw/6y05BNYcUyOwrJjfk1RfljcuigBTE8w==
 
+"@honeycomb-protocol/resource-manager@^0.0.2-beta.9":
+  version "0.0.2-beta.9"
+  resolved "https://registry.yarnpkg.com/@honeycomb-protocol/resource-manager/-/resource-manager-0.0.2-beta.9.tgz#a1e6e5190ced1b77f955d6075ebb548d25f323c8"
+  integrity sha512-Ilfgc26+jmfy8crUhwJrqEl81hJBoWo9xdSRKG0qZYjFpKIKWPtgrEY9rewGlEIepnEojBwhLGY/rdSQDwYKdg==
+
 "@identity.com/sol-did-client-legacy@^2.0.4":
   version "2.0.4"
   resolved "https://registry.yarnpkg.com/@identity.com/sol-did-client-legacy/-/sol-did-client-legacy-2.0.4.tgz#95b7be01f0022cd34abaee37cc11750f423f1b54"
