@@ -2,6 +2,38 @@
 
 This repository contains a collection of demos that showcase how to use the Honeycomb Protocol. 
 
-Each demo covers a different use-case of Honeycomb. The demos are written as tests that can be run using the `yarn test` command.
+## Prerequisites
 
-Please make sure to install all dependencies by running `yarn` when you clone this repo.
+1. Make sure to [install Solana CLI](https://docs.solanalabs.com/cli/install) (needed for generating keys).
+
+2. Please make sure to install all dependencies by running `yarn` when you clone this repo.
+
+3. Generate two keypairs for the demo. Use the guide in the `/keys` folder.
+
+## Running the demos
+
+Each demo covers a different use-case of Honeycomb. The demos are written as tests that can be run either individually or all at once.
+
+To run all the demos, use the following command:
+
+```bash
+
+yarn test
+
+```
+
+To run a specific demo, use the following command:
+
+```bash
+
+yarn test <filename without .test.ts>
+
+```
+
+For example:
+
+```bash
+
+yarn test missions
+
+```

@@ -15,3 +15,19 @@ This will generate a new keypair and save it to `keys/admin.json`. Please genera
 solana-keygen new --outfile keys/user.json
 
 ```
+
+Fund these accounts with some SOL to run the demos.
+
+```bash
+
+solana airdrop 100 --url OUR_RPC_URL -k ./keys/admin.json
+
+```
+
+```bash
+
+solana airdrop 100 --url OUR_RPC_URL -k ./keys/user.json
+
+```
+
+This will fund each wallet with 100 SOL each on our RPC. Please note that you'll need to [contact us](mailto:hello@honeycombprotocol.com) to acquire our RPC and API URLs.
