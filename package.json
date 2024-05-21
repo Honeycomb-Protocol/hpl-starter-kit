@@ -8,9 +8,12 @@
     "@honeycomb-protocol/hive-control": "^0.2.19-beta.5",
     "@honeycomb-protocol/nectar-missions": "^0.1.45-beta.4",
     "@metaplex-foundation/js": "^0.20.1",
-    "@solana/web3.js": "^1.91.8",
-    "bs58": "^5.0.0",
-    "dotenv": "^16.4.5"
+    "@metaplex-foundation/mpl-bubblegum": "=0.7.0",
+    "@metaplex-foundation/mpl-token-metadata": "=2.13.0",
+    "@metaplex-foundation/umi": "^0.9.1",
+    "@solana/spl-account-compression": "^0.2.1",
+    "@solana/web3.js": "^1.89.1",
+    "bs58": "^5.0.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",

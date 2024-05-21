@@ -1,0 +1,22 @@
+{
+    "compilerOptions": {
+      "outDir": "./dist",
+      "target": "esnext",
+      "module": "commonjs",
+      "esModuleInterop": true,
+      "sourceMap": true,
+      "declaration": true,
+      "declarationMap": true,
+      "removeComments": true,
+      "skipLibCheck": true,
+      "noImplicitAny": false,
+      "noImplicitReturns": false,
+      "noFallthroughCasesInSwitch": true,
+      "forceConsistentCasingInFileNames": true,
+      "resolveJsonModule": true,
+      "lib": ["esnext", "esnext.asynciterable", "DOM"],
+      "types": ["node", "jest"],
+    },
+    "exclude": ["codegen.ts", "dist", "temp.ts", "tests"]
+  }
+  

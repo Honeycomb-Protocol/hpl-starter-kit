@@ -4,7 +4,14 @@ import {
     TokenProgramVersion,
     createCreateTreeInstruction,
     createMintToCollectionV1Instruction,
-  } from "@metaplex-foundation/mpl-bubblegum";
+} from "@metaplex-foundation/mpl-bubblegum";
+import { PROGRAM_ID as TOKEN_METADATA_PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
+import {
+    SPL_ACCOUNT_COMPRESSION_PROGRAM_ID,
+    SPL_NOOP_PROGRAM_ID,
+    ValidDepthSizePair,
+    getConcurrentMerkleTreeAccountSize,
+} from "@solana/spl-account-compression";
 
 export async function createNewTree(
     connection: web3.Connection,
