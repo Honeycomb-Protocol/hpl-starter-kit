@@ -52,7 +52,7 @@ jest.setTimeout(200000);
 require("dotenv").config();
 
 const API_URL = process.env.API_URL ?? "http://localhost:4000/";
-const RPC_URL = process.env.RPC_URL ?? "https://rpc.eboy.dev/";
+const RPC_URL = process.env.RPC_URL ?? "http://localhost:8899";
 const DAS_API_URL = process.env.DAS_API_URL ?? RPC_URL;
 
 const connection = new web3.Connection(RPC_URL, "processed");
@@ -67,7 +67,7 @@ const client = createEdgeClient(
 const adminKeypair = web3.Keypair.fromSecretKey(
   Uint8Array.from(
     JSON.parse(
-      fs.readFileSync(path.resolve(__dirname, "keys", "admin.json"), "utf8")
+      fs.readFileSync(path.resolve(__dirname, "../keys", "admin.json"), "utf8")
     )
   )
 );
@@ -75,7 +75,7 @@ const adminKeypair = web3.Keypair.fromSecretKey(
 const userKeypair = web3.Keypair.fromSecretKey(
   Uint8Array.from(
     JSON.parse(
-      fs.readFileSync(path.resolve(__dirname, "keys", "user.json"), "utf8")
+      fs.readFileSync(path.resolve(__dirname, "../keys", "user.json"), "utf8")
     )
   )
 );

@@ -6,7 +6,8 @@
     "@honeycomb-protocol/nectar-missions": "^0.1.45-beta.4",
     "@metaplex-foundation/js": "^0.20.1",
     "@solana/web3.js": "^1.91.8",
-    "bs58": "^5.0.0"
+    "bs58": "^5.0.0",
+    "dotenv": "^16.4.5"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",
