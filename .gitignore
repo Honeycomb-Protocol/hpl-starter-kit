@@ -1,0 +1,14 @@
+# Node.js
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Dotenv file
+.env
+
+# Solana admin and user keypairs
+# Ignore all files inside the keys folder
+keys/* 
+# Except the keys folder itself
+!keys/
