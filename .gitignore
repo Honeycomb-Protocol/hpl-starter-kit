@@ -9,6 +9,4 @@ yarn-error.log
 
 # Solana admin and user keypairs
 # Ignore all files inside the keys folder
-keys/* 
-# Except the keys folder itself
-!keys/
+keys/*.json
