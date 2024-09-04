@@ -16,21 +16,15 @@ add_env_variable() {
 if [ ! -f "$ENV_FILE" ]; then
     echo "Creating .env file..."
     touch .env
-    echo "API_URL=\"https://edge.test.honeycombprotocol.com/\"" >> "$ENV_FILE"
-    echo "RPC_URL=\"https://rpc.test.honeycombprotocol.com/\"" >> "$ENV_FILE"
-    echo "DAS_API_URL=\"https://edge.test.honeycombprotocol.com/\"" >> "$ENV_FILE"
+    add_env_variable "API_URL" "https://edge.test.honeycombprotocol.com/"
+    add_env_variable "RPC_URL" "https://rpc.test.honeycombprotocol.com/"
+    add_env_variable "DAS_API_URL" "https://edge.test.honeycombprotocol.com/"
 else
-    echo ".env file already exists."
-
+    echo ".env file already exists. Checking if the required variables are present..."
     add_env_variable "API_URL" "https://edge.test.honeycombprotocol.com/"
     add_env_variable "RPC_URL" "https://rpc.test.honeycombprotocol.com/"
     add_env_variable "DAS_API_URL" "https://edge.test.honeycombprotocol.com/"
 fi
-
-echo "Waiting for the .env file to be created..."
-while [ ! -f "$ENV_FILE" ]; do
-    sleep 1
-done
 
 export $(grep -v '^#' "$ENV_FILE" | xargs)
 
