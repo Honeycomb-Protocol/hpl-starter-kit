@@ -1,548 +1,553 @@
-import { Metaplex, keypairIdentity } from "@metaplex-foundation/js";
-import { TokenStandard } from "@metaplex-foundation/mpl-token-metadata";
 import * as web3 from "@solana/web3.js";
 import base58 from "bs58";
-import fs from "fs";
-import path from "path";
-import { createNewTree, mintOneCNFT } from "../utils";
-import { Client, fetchExchange } from "@urql/core";
 import {
-    HplCurrency,
-    PermissionedCurrencyKind,
-} from "@honeycomb-protocol/currency-manager";
-import {
-    Honeycomb,
-    HoneycombProject,
-    identityModule,
-} from "@honeycomb-protocol/hive-control";
-import createEdgeClient, {
-    CharacterModel,
-    LockTypeEnum,
-    Transaction,
-    Transactions,
+  AddMultiplierMetadataInput,
+  CharacterModel,
+  LockTypeEnum,
+  PermissionedCurrencyKindEnum,
 } from "@honeycomb-protocol/edge-client";
-import { fetchHeliusAssets } from "@honeycomb-protocol/character-manager";
+import {
+  HPL_HIVE_CONTROL_PROGRAM,
+  VAULT,
+} from "@honeycomb-protocol/hive-control";
+import { HPL_CHARACTER_MANAGER_PROGRAM } from "@honeycomb-protocol/character-manager";
+import { HPL_CURRENCY_MANAGER_PROGRAM } from "@honeycomb-protocol/currency-manager";
+import {
+  SPL_ACCOUNT_COMPRESSION_PROGRAM_ID,
+  SPL_NOOP_PROGRAM_ID,
+} from "@solana/spl-account-compression";
+import {
+  DAS_API_URL,
+  adminKeypair,
+  client,
+  connection,
+  sendTransaction,
+  sendTransactions,
+  umi,
+  userKeypair,
+  log,
+  mintAssets,
+  fetchHeliusAssets,
+} from "../utils";
 
-jest.setTimeout(200000);
-
-require("dotenv").config();
-
-const API_URL = process.env.API_URL ?? "http://localhost:4000/";
-const RPC_URL = process.env.RPC_URL ?? "http://localhost:8899/";
-const DAS_API_URL = process.env.DAS_API_URL ?? RPC_URL;
-
-const totalNfts = 5;
+const totalNfts = 1;
 const totalcNfts = 0;
 
-const connection = new web3.Connection(RPC_URL, "processed");
-
-const client = createEdgeClient(
-    new Client({
-        url: API_URL,
-        exchanges: [fetchExchange],
-    })
-);
-
-const adminKeypair = web3.Keypair.fromSecretKey(
-    Uint8Array.from(
-        JSON.parse(
-            fs.readFileSync(path.resolve(__dirname, "keys", "admin.json"), "utf8")
-        )
-    )
-);
-
-const userKeypair = web3.Keypair.fromSecretKey(
-    Uint8Array.from(
-        JSON.parse(
-            fs.readFileSync(path.resolve(__dirname, "keys", "user.json"), "utf8")
-        )
-    )
-);
-
-const sendTransaction = async (
-    txResponse: Transaction,
-    signer: web3.Keypair,
-    action: string
-) => {
-    const signedTx = web3.VersionedTransaction.deserialize(
-        base58.decode(txResponse.transaction)
-    );
-    signedTx.sign([signer]);
-
-    const { sendBulkTransactions } = await client.sendBulkTransactions({
-        txs: [base58.encode(signedTx.serialize())],
-        blockhash: txResponse!.blockhash,
-        lastValidBlockHeight: txResponse!.lastValidBlockHeight,
-        options: {
-            skipPreflight: true,
-        },
-    });
-
-    expect(sendBulkTransactions.length).toBe(1);
-    if (sendBulkTransactions[0].status !== "Success") {
-        console.log(
-            action,
-            sendBulkTransactions[0].status,
-            sendBulkTransactions[0].signature,
-            sendBulkTransactions[0].error
-        );
-    }
-    expect(sendBulkTransactions[0].status).toBe("Success");
-};
-
-const sendTransactions = async (
-    txResponse: Transactions,
-    signer: web3.Keypair,
-    action: string
-) => {
-    const txs = txResponse!.transactions.map((txStr) => {
-        const tx = web3.VersionedTransaction.deserialize(base58.decode(txStr));
-        tx.sign([signer]);
-        return base58.encode(tx.serialize());
-    });
-
-    const { sendBulkTransactions } = await client.sendBulkTransactions({
-        txs,
-        blockhash: txResponse!.blockhash,
-        lastValidBlockHeight: txResponse!.lastValidBlockHeight,
-        options: {
-            skipPreflight: true,
-        },
-    });
-
-    expect(sendBulkTransactions.length).toBe(txs.length);
-    sendBulkTransactions.forEach((txResponse) => {
-        if (txResponse.status !== "Success") {
-            console.log(action, txResponse.signature, txResponse.error);
-        }
-        expect(txResponse.status).toBe("Success");
-    });
-};
-
 describe("Test Nectar Staking Txs", () => {
-    let collection: web3.PublicKey;
-    let merkleTree: web3.PublicKey;
-    let projectAddress: web3.PublicKey;
-    let project: HoneycombProject;
-    let currencyAddress: web3.PublicKey;
-    let stakingPoolAddress: web3.PublicKey;
-    let currency: HplCurrency;
-    let characterModelAddress: web3.PublicKey;
-    let characterModel: CharacterModel;
-    let multipliersAddress: string;
+  let collection: web3.PublicKey;
+  let merkleTree: web3.PublicKey;
+  let projectAddress: string;
+  let currencyAddress: string;
+  let stakingPoolAddress: string;
+  let characterModelAddress: string;
+  let characterModel: CharacterModel;
+  let multipliersAddress: string;
+  let lookupTableAddress: string;
 
-    beforeAll(async () => {
-        const adminHC = new Honeycomb(connection).use(identityModule(adminKeypair));
-        const metaplex = new Metaplex(connection);
-        metaplex.use(keypairIdentity(adminKeypair));
+  beforeAll(async () => {
+    const mintedAssets = await mintAssets(
+      umi,
+      {
+        cnfts: totalcNfts,
+        pnfts: totalNfts,
+      },
+      userKeypair.publicKey
+    );
+    if (mintedAssets.cnfts?.group)
+      merkleTree = new web3.PublicKey(mintedAssets.cnfts.group);
+    if (mintedAssets.pnfts?.group)
+      collection = new web3.PublicKey(mintedAssets.pnfts.group);
+    log(mintedAssets);
 
-        // Mint Collection
-        if (!collection && (totalNfts > 0 || totalcNfts > 0)) {
-            collection = await metaplex
-                .nfts()
-                .create({
-                    name: "Collection",
-                    symbol: "COL",
-                    sellerFeeBasisPoints: 0,
-                    uri: "https://api.eboy.dev/",
-                    isCollection: true,
-                    collectionIsSized: true,
-                })
-                .then((x) => x.nft.mint.address);
-        }
-        console.log("Collection", collection.toString());
+    // Create Project
+    if (!projectAddress) {
+      const {
+        createCreateProjectTransaction: {
+          project: projectAddressT,
+          tx: txResponse,
+        },
+      } = await client.createCreateProjectTransaction({
+        name: "Test Project",
+        authority: adminKeypair.publicKey.toString(),
+        payer: adminKeypair.publicKey.toString(),
+      });
 
-        // Mint Nfts
-        for (let i = 1; i <= totalNfts; i++) {
-            await metaplex
-                .nfts()
-                .create({
-                    name: `Sol Patrol #${i}`,
-                    symbol: `NFT`,
-                    sellerFeeBasisPoints: 100,
-                    uri: "https://arweave.net/WhyRt90kgI7f0EG9GPfB8TIBTIBgX3X12QaF9ObFerE",
-                    collection,
-                    collectionAuthority: metaplex.identity(),
-                    tokenStandard: TokenStandard.NonFungible,
-                    tokenOwner: userKeypair.publicKey,
-                })
-                .then((x) => x.nft);
-        }
+      await sendTransaction(
+        txResponse,
+        [adminKeypair],
+        "createCreateProjectTransaction"
+      );
 
-        // Mint cNFTs
-        for (let i = 1; i <= totalcNfts; i++) {
-            if (i === 1 && !merkleTree) {
-                [merkleTree] = await createNewTree(connection, adminKeypair);
-            }
+      projectAddress = projectAddressT;
+    }
+    log("Project", projectAddress);
 
-            await mintOneCNFT(connection, adminKeypair, {
-                dropWalletKey: userKeypair.publicKey,
-                name: `cNFT #${i}`,
-                symbol: "cNFT",
-                uri: "https://arweave.net/WhyRt90kgI7f0EG9GPfB8TIBTIBgX3X12QaF9ObFerE",
-                merkleTree,
-                collectionMint: collection,
-            });
-        }
+    // Create Currency
+    if (!currencyAddress) {
+      const {
+        createInitCurrencyTransaction: { currency: currencyAddressT, tx },
+      } = await client.createInitCurrencyTransaction({
+        create: {
+          authority: adminKeypair.publicKey.toString(),
+          project: projectAddress,
+          metadata: {
+            decimals: 9,
+            name: "Test Currency",
+            symbol: "TST",
+            uri: "https://qgp7lco5ylyitscysc2c7clhpxipw6sexpc2eij7g5rq3pnkcx2q.arweave.net/gZ_1id3C8InIWJC0L4lnfdD7ekS7xaIhPzdjDb2qFfU",
+            kind: PermissionedCurrencyKindEnum.Custodial,
+          },
+        },
+      });
 
-        // Create Project
-        if (!projectAddress) {
-            project = await HoneycombProject.new(adminHC, {
-                name: "Project",
-            });
-        } else {
-            project = await HoneycombProject.fromAddress(adminHC, projectAddress);
-        }
-        adminHC.use(project);
-        projectAddress = project.address;
-        console.log("Project", projectAddress.toString());
+      await sendTransaction(
+        tx,
+        [adminKeypair],
+        "createInitCurrencyTransaction"
+      );
+      currencyAddress = currencyAddressT;
+    }
+    log("Currency", currencyAddress);
 
-        // Create Currency
-        if (!currencyAddress) {
-            currency = await HplCurrency.new(adminHC, {
-                name: "BAIL",
-                symbol: "BAIL",
-                kind: PermissionedCurrencyKind.NonCustodial,
-                decimals: 9,
-                uri: "https://arweave.net/1VxSzPEOwYlTo3lU5XSQWj-9Ldt3dB68cynDDjzeF-c",
-            });
-            currencyAddress = currency.address;
-        } else {
-            currency = await HplCurrency.fromAddress(adminHC, currencyAddress);
-        }
-        console.log("Currency", currencyAddress.toString());
+    // Create Holder Account
+    const holderAccountFetched = await client
+      .findHolderAccounts({
+        owners: [userKeypair.publicKey.toString()],
+        currencies: [currencyAddress],
+      })
+      .then((e) => e.holderAccounts[0]);
 
-        // Create Holder Account
-        adminHC.use(currency);
-        await currency.newHolderAccount(userKeypair.publicKey);
+    if (!holderAccountFetched) {
+      const {
+        createCreateHolderAccountTransaction: { holderAccount, tx },
+      } = await client.createCreateHolderAccountTransaction({
+        project: projectAddress,
+        currency: currencyAddress,
+        owner: userKeypair.publicKey.toString(),
+        payer: userKeypair.publicKey.toString(),
+      });
 
-        // Create Character Model
-        if (!characterModelAddress) {
-            const {
-                createCreateCharacterModelTransaction: {
-                    tx: txResponse,
-                    characterModel: characterModelAddressT,
-                },
-            } = await client.createCreateCharacterModelTransaction({
-                config: {
-                    kind: "Wrapped",
-                    criterias: [
-                        {
-                            kind: "Collection",
-                            params: collection.toString(),
-                        },
-                        ...(merkleTree
-                            ? [
-                                {
-                                    kind: "MerkleTree",
-                                    params: merkleTree.toString(),
-                                },
-                            ]
-                            : []),
-                    ],
-                },
-                project: projectAddress.toString(),
-                authority: adminKeypair.publicKey.toString(),
-                payer: adminKeypair.publicKey.toString(),
-            });
-            characterModelAddress = new web3.PublicKey(characterModelAddressT);
+      await sendTransaction(
+        tx,
+        [userKeypair],
+        "createCreateHolderAccountTransaction"
+      );
+      log("holderAccount", holderAccount);
+    }
 
-            await sendTransaction(
-                txResponse,
-                adminKeypair,
-                "createCreateCharacterModelTransaction"
-            );
-        }
-        console.log("Character Model", characterModelAddress.toString());
-
-        await new Promise((resolve) => setTimeout(resolve, 10000));
-        characterModel = await client
-            .findCharacterModels({
-                ids: [characterModelAddress.toString()],
-            })
-            .then((res) => res.characterModel[0]);
-        expect(characterModel).toBeTruthy();
-
-        // Create Characters Tree
-        if (
-            !characterModel.merkle_trees.merkle_trees[
-            characterModel.merkle_trees.active
-            ]
-        ) {
-            const { createCreateCharactersTreeTransaction: txResponse } =
-                await client.createCreateCharactersTreeTransaction({
-                    treeConfig: {
-                        maxDepth: 3,
-                        maxBufferSize: 8,
-                        canopyDepth: 3,
-                    },
-                    project: projectAddress.toString(),
-                    characterModel: characterModelAddress.toString(),
-                    authority: adminKeypair.publicKey.toString(),
-                    payer: adminKeypair.publicKey.toString(),
-                });
-
-            await sendTransaction(
-                txResponse,
-                adminKeypair,
-                "createCreateCharactersTreeTransaction"
-            );
-
-            await new Promise((resolve) => setTimeout(resolve, 10000));
-            characterModel = await client
-                .findCharacterModels({
-                    ids: [characterModelAddress.toString()],
-                })
-                .then((res) => res.characterModel[0]);
-        }
-
-        // Wrap Assets
-        const assets = await fetchHeliusAssets(DAS_API_URL, {
-            walletAddress: userKeypair.publicKey,
-            collectionAddress: collection,
-        }).then((assets) => assets.filter((n) => !n.frozen).slice(0, 5));
-
-        if (!assets.length) throw new Error("No Assets to wrap");
-
-        const { createWrapAssetsToCharacterTransactions: txResponse } =
-            await client.createWrapAssetsToCharacterTransactions({
-                project: projectAddress.toString(),
-                characterModel: characterModelAddress.toString(),
-                activeCharactersMerkleTree:
-                    characterModel.merkle_trees.merkle_trees[
-                        characterModel.merkle_trees.active
-                    ].toString(),
-                wallet: userKeypair.publicKey.toString(),
-                mintList: assets.map((n) => n.mint.toString()),
-            });
-
-        const txs = txResponse!.transactions.map((txStr) => {
-            const tx = web3.VersionedTransaction.deserialize(base58.decode(txStr));
-            tx.sign([userKeypair]);
-            return base58.encode(tx.serialize());
-        });
-
-        await sendTransactions(
-            txResponse,
-            userKeypair,
-            "createWrapAssetsToCharacterTransactions"
-        );
-    });
-
-    it("Create/Load Staking Pool", async () => {
-        if (!projectAddress) throw new Error("Project not created");
-        if (!currencyAddress) throw new Error("Currency not created");
-
-        if (!stakingPoolAddress) {
-            const {
-                createCreateStakingPoolTransaction: {
-                    tx: stakingPoolTx,
-                    stakingPoolAddress: stakingPoolAddressT,
-                },
-            } = await client.createCreateStakingPoolTransaction({
-                project: projectAddress.toString(),
-                currency: currencyAddress.toString(),
-                authority: adminKeypair.publicKey.toString(),
-                metadata: {
-                    name: "Staking",
-                    rewardsPerDuration: 1,
-                    rewardsDuration: "1",
-                    maxRewardsDuration: null,
-                    minStakeDuration: null,
-                    cooldownDuration: null,
-                    resetStakeDuration: false,
-                    startTime: Date.now().toString(),
-                    endTime: null,
-                    lockType: LockTypeEnum.Freeze,
-                },
-            });
-
-            stakingPoolAddress = new web3.PublicKey(stakingPoolAddressT);
-            console.log("Staking Pool", stakingPoolAddressT.toString());
-            await sendTransaction(
-                stakingPoolTx,
-                adminKeypair,
-                "createCreateStakingPoolTransaction"
-            );
-        }
-
-        const pool = await client
-            .findStakingPools({
-                ids: [stakingPoolAddress.toBase58()],
-            })
-            .then((res) => res.stakingPools[0]);
-
-        expect(pool).toBeTruthy();
-    });
-
-    it("Update Staking Pool", async () => {
-        if (!stakingPoolAddress) throw new Error("Staking Pool not created");
-
-        const { createUpdateStakingPoolTransaction: updatePoolTx } =
-            await client.createUpdateStakingPoolTransaction({
-                authority: adminKeypair.publicKey.toString(),
-                project: projectAddress.toString(),
-                stakingPool: stakingPoolAddress.toString(),
-                metadata: {},
-            });
-
-        await sendTransaction(
-            updatePoolTx,
-            adminKeypair,
-            "createUpdateStakingPoolTransaction"
-        );
-
-        const stakingPool = await client
-            .findStakingPools({
-                ids: [stakingPoolAddress.toString()],
-            })
-            .then((res) => res.stakingPools[0]);
-
-        expect(stakingPool).toBeTruthy();
-    });
-
-    it("Create/Load Multipliers", async () => {
-        if (!projectAddress) throw new Error("Project not created");
-        if (!stakingPoolAddress) throw new Error("Staking Pool not created");
-
-        if (!multipliersAddress) {
-            const {
-                createInitMultipliersTransaction: {
-                    multipliersAddress: multipliersAddressT,
-                    tx: initMultiplierTx,
-                },
-            } = await client.createInitMultipliersTransaction({
-                authority: adminKeypair.publicKey.toString(),
-                project: projectAddress.toString(),
-                stakingPool: stakingPoolAddress.toString(),
-                decimals: 3,
-            });
-
-            await sendTransaction(
-                initMultiplierTx,
-                adminKeypair,
-                "createInitMultipliersTransaction"
-            );
-
-            multipliersAddress = multipliersAddressT;
-            console.log("Multipliers", multipliersAddress);
-        }
-
-        const multipliers = await client
-            .findMultipliers({
-                ids: [multipliersAddress],
-            })
-            .then((res) => res.multipliers[0]);
-
-        expect(multipliers).toBeTruthy();
-    });
-
-    it("Add Multiplier", async () => {
-        if (!projectAddress) throw new Error("Project not created");
-        if (!stakingPoolAddress) throw new Error("Staking Pool not created");
-        if (!multipliersAddress) throw new Error("Multipliers not created");
-
-        const { createAddMultiplierTransaction: txResponse } =
-            await client.createAddMultiplierTransaction({
-                project: projectAddress.toString(),
-                multiplier: multipliersAddress,
-                authority: adminKeypair.publicKey.toString(),
-                metadata: {
-                    value: 200, // +0.2x (i.e. 1.2x if 1x)
-                    type: {
-                        minStakeDuration: "3600", // 1 hour
-                    },
-                },
-            });
-
-        await sendTransaction(
-            txResponse,
-            adminKeypair,
-            "createAddMultiplierTransaction"
-        );
-
-        const multipliers = await client
-            .findMultipliers({
-                ids: [multipliersAddress],
-            })
-            .then((res) => res.multipliers[0]);
-
-        expect(multipliers).toBeTruthy();
-    });
-
-    it("Stake Characters", async () => {
-        await new Promise((resolve) => setTimeout(resolve, 10000));
-        const { character } = await client.findCharacters({
-            filters: {
-                owner: userKeypair.publicKey.toString(),
-                usedBy: {
-                    kind: "None",
-                },
+    // Create Character Model
+    if (!characterModelAddress) {
+      const {
+        createCreateCharacterModelTransaction: {
+          tx: txResponse,
+          characterModel: characterModelAddressT,
+        },
+      } = await client.createCreateCharacterModelTransaction({
+        config: {
+          kind: "Wrapped",
+          criterias: [
+            {
+              kind: "Collection",
+              params: collection.toString(),
             },
-            trees: characterModel.merkle_trees.merkle_trees.map((x) => x.toString()),
+            ...(merkleTree
+              ? [
+                  {
+                    kind: "MerkleTree",
+                    params: merkleTree.toString(),
+                  },
+                ]
+              : []),
+          ],
+        },
+        project: projectAddress,
+        authority: adminKeypair.publicKey.toString(),
+        payer: adminKeypair.publicKey.toString(),
+      });
+      characterModelAddress = characterModelAddressT;
+
+      await sendTransaction(
+        txResponse,
+        [adminKeypair],
+        "createCreateCharacterModelTransaction"
+      );
+    }
+    log("Character Model", characterModelAddress.toString());
+
+    characterModel = await client
+      .findCharacterModels({
+        addresses: [characterModelAddress.toString()],
+      })
+      .then((res) => res.characterModel[0]);
+    expect(characterModel).toBeTruthy();
+
+    // Create Characters Tree
+    if (
+      !characterModel.merkle_trees.merkle_trees[
+        characterModel.merkle_trees.active
+      ]
+    ) {
+      const {
+        createCreateCharactersTreeTransaction: { tx: txResponse },
+      } = await client.createCreateCharactersTreeTransaction({
+        treeConfig: {
+          advanced: {
+            maxDepth: 3,
+            maxBufferSize: 8,
+            canopyDepth: 3,
+          },
+        },
+        project: projectAddress,
+        characterModel: characterModelAddress.toString(),
+        authority: adminKeypair.publicKey.toString(),
+        payer: adminKeypair.publicKey.toString(),
+      });
+
+      await sendTransaction(
+        txResponse,
+        [adminKeypair],
+        "createCreateCharactersTreeTransaction"
+      );
+
+      characterModel = await client
+        .findCharacterModels({
+          addresses: [characterModelAddress.toString()],
+        })
+        .then((res) => res.characterModel[0]);
+    }
+
+    if (totalNfts > 0 || totalcNfts > 0) {
+      // Wrap Assets
+      const assets = await fetchHeliusAssets(DAS_API_URL, {
+        walletAddress: userKeypair.publicKey,
+        collectionAddress: collection,
+      }).then((assets) => assets.filter((n) => !n.frozen).slice(0, 5));
+
+      // if (!assets.length) throw new Error("No Assets to wrap");
+
+      const { createWrapAssetsToCharacterTransactions: txResponse } =
+        await client.createWrapAssetsToCharacterTransactions({
+          project: projectAddress,
+          characterModel: characterModelAddress.toString(),
+          activeCharactersMerkleTree:
+            characterModel.merkle_trees.merkle_trees[
+              characterModel.merkle_trees.active
+            ].toString(),
+          wallet: userKeypair.publicKey.toString(),
+          mintList: assets.map((n) => n.mint.toString()),
         });
 
-        if (!character?.length) throw new Error("No characters to stake");
+      await sendTransactions(
+        txResponse,
+        [userKeypair],
+        "createWrapAssetsToCharacterTransactions"
+      );
+    }
+  });
 
-        const { createStakeCharactersTransactions: txResponse } =
-            await client.createStakeCharactersTransactions({
-                characterIds: character.map((x) => x!.id),
-                project: projectAddress.toString(),
-                characterModel: characterModelAddress.toString(),
-                stakingPool: stakingPoolAddress.toString(),
-                feePayer: userKeypair.publicKey.toString(),
-            });
+  it("Create/Load Staking Pool", async () => {
+    if (!projectAddress) throw new Error("Project not created");
+    if (!currencyAddress) throw new Error("Currency not created");
 
-        await sendTransactions(
-            txResponse,
-            userKeypair,
-            "createStakeCharactersTransactions"
+    if (!stakingPoolAddress) {
+      const {
+        createCreateStakingPoolTransaction: {
+          transactions: stakingPoolTxns,
+          stakingPoolAddress: stakingPoolAddressT,
+        },
+      } = await client.createCreateStakingPoolTransaction({
+        project: projectAddress,
+        currency: currencyAddress,
+        authority: adminKeypair.publicKey.toString(),
+        metadata: {
+          name: "Staking",
+          rewardsPerDuration: "1",
+          rewardsDuration: "1",
+          maxRewardsDuration: null,
+          minStakeDuration: null,
+          cooldownDuration: null,
+          resetStakeDuration: false,
+          startTime: Date.now().toString(),
+          endTime: null,
+          lockType: LockTypeEnum.Freeze,
+        },
+      });
+
+      stakingPoolAddress = stakingPoolAddressT;
+      log("Staking Pool", stakingPoolAddress);
+
+      for (let i = 0; i < stakingPoolTxns.transactions.length; i++) {
+        await sendTransaction(
+          {
+            blockhash: stakingPoolTxns.blockhash,
+            lastValidBlockHeight: stakingPoolTxns.lastValidBlockHeight,
+            transaction: stakingPoolTxns.transactions[i],
+          },
+          [adminKeypair],
+          "createCreateStakingPoolTransaction"
         );
+      }
+    }
 
-        await new Promise((resolve) => setTimeout(resolve, 10000));
-        const { character: characterRefetch } = await client.findCharacters({
-            ids: character.map((x) => x!.id),
+    const pool = await client
+      .findStakingPools({
+        addresses: [stakingPoolAddress],
+      })
+      .then((res) => res.stakingPools[0]);
+
+    expect(pool).toBeTruthy();
+  });
+
+  it("Update Staking Pool", async () => {
+    if (!stakingPoolAddress) throw new Error("Staking Pool not created");
+
+    const { createUpdateStakingPoolTransaction: updatePoolTx } =
+      await client.createUpdateStakingPoolTransaction({
+        authority: adminKeypair.publicKey.toString(),
+        project: projectAddress,
+        stakingPool: stakingPoolAddress,
+        characterModel: characterModelAddress,
+      });
+
+    await sendTransaction(
+      updatePoolTx,
+      [adminKeypair],
+      "createUpdateStakingPoolTransaction"
+    );
+
+    const stakingPool = await client
+      .findStakingPools({
+        addresses: [stakingPoolAddress.toString()],
+      })
+      .then((res) => res.stakingPools[0]);
+
+    expect(stakingPool).toBeTruthy();
+  });
+
+  it("Create/Load Multipliers", async () => {
+    if (!projectAddress) throw new Error("Project not created");
+    if (!stakingPoolAddress) throw new Error("Staking Pool not created");
+
+    if (!multipliersAddress) {
+      const {
+        createInitMultipliersTransaction: {
+          multipliersAddress: multipliersAddressT,
+          tx: initMultiplierTx,
+        },
+      } = await client.createInitMultipliersTransaction({
+        authority: adminKeypair.publicKey.toString(),
+        project: projectAddress,
+        multipliers: [],
+        stakingPool: stakingPoolAddress,
+        decimals: 3,
+      });
+
+      await sendTransaction(
+        initMultiplierTx,
+        [adminKeypair],
+        "createInitMultipliersTransaction"
+      );
+
+      multipliersAddress = multipliersAddressT;
+      log("Multipliers", multipliersAddress);
+    }
+
+    const multipliers = await client
+      .findMultipliers({
+        addresses: [multipliersAddress],
+      })
+      .then((res) => res.multipliers[0]);
+
+    expect(multipliers).toBeTruthy();
+  });
+
+  it("Add Multiplier", async () => {
+    if (!projectAddress) throw new Error("Project not created");
+    if (!stakingPoolAddress) throw new Error("Staking Pool not created");
+    if (!multipliersAddress) throw new Error("Multipliers not created");
+
+    const multipliersMetadata: AddMultiplierMetadataInput[] = [
+      {
+        value: "100", // +0.1x (i.e. 1.1x if 1x)
+        type: {
+          collection: collection.toBase58(),
+        },
+      },
+      {
+        value: "300", // +0.3x (i.e. 1.3x if 1x)
+        type: {
+          creator: userKeypair.publicKey.toString(),
+        },
+      },
+      {
+        value: "300", // +0.3x (i.e. 1.3x if 1x)
+        type: {
+          minNftCount: "1",
+        },
+      },
+      {
+        value: "300", // +0.3x (i.e. 1.3x if 1x)
+        type: {
+          minStakeDuration: "1",
+        },
+      },
+    ];
+
+    for (const metadata of multipliersMetadata) {
+      const { createAddMultiplierTransaction: txResponse } =
+        await client.createAddMultiplierTransaction({
+          project: projectAddress,
+          multiplier: multipliersAddress,
+          authority: adminKeypair.publicKey.toString(),
+          metadata,
         });
-        expect(characterRefetch.length).toBe(character.length);
-        characterRefetch.forEach((x) => {
-            expect(x.usedBy.kind).toBe("Staking");
-        });
+
+      await sendTransaction(
+        txResponse,
+        [adminKeypair],
+        "createAddMultiplierTransaction"
+      );
+    }
+
+    const multipliers = await client
+      .findMultipliers({
+        addresses: [multipliersAddress],
+      })
+      .then((res) => res.multipliers[0]);
+
+    expect(multipliers).toBeTruthy();
+  });
+
+  it("Stake Characters", async () => {
+    const { character } = await client.findCharacters({
+      filters: {
+        owner: userKeypair.publicKey.toString(),
+        usedBy: {
+          kind: "None",
+        },
+      },
+      trees: characterModel.merkle_trees.merkle_trees.map((x) => x.toString()),
     });
 
-    it("Unstake Character", async () => {
-        await new Promise((resolve) => setTimeout(resolve, 10000));
-        const { character } = await client.findCharacters({
-            filters: {
-                owner: userKeypair.publicKey.toString(),
-                usedBy: {
-                    kind: "Staking",
-                },
-            },
-            trees: characterModel.merkle_trees.merkle_trees.map((x) => x.toString()),
-        });
+    if (!character?.length) throw new Error("No characters to stake");
 
-        if (!character?.length) throw new Error("No characters to unstake");
+    const { createStakeCharactersTransactions: txResponse } =
+      await client.createStakeCharactersTransactions({
+        characterAddresses: character.map((x) => x!.address),
+        project: projectAddress,
+        characterModel: characterModelAddress.toString(),
+        stakingPool: stakingPoolAddress,
+        feePayer: userKeypair.publicKey.toString(),
+      });
 
-        const { createUnstakeCharactersTransactions: txResponse } =
-            await client.createUnstakeCharactersTransactions({
-                characterIds: character.map((x) => x!.id),
-                characterModel: characterModelAddress.toString(),
-                feePayer: userKeypair.publicKey.toString(),
-            });
+    await sendTransactions(
+      txResponse,
+      [userKeypair],
+      "createStakeCharactersTransactions"
+    );
 
-        await sendTransactions(
-            txResponse,
-            userKeypair,
-            "createUnstakeCharactersTransactions"
-        );
-
-        await new Promise((resolve) => setTimeout(resolve, 10000));
-        const { character: characterRefetch } = await client.findCharacters({
-            ids: character.map((x) => x!.id),
-        });
-        expect(characterRefetch.length).toBe(character.length);
-        characterRefetch.forEach((x) => {
-            expect(x.usedBy.kind).toBe("None");
-        });
+    const { character: characterRefetch } = await client.findCharacters({
+      addresses: character.map((x) => x!.address),
     });
+    expect(characterRefetch.length).toBe(character.length);
+    characterRefetch.forEach((x) => {
+      expect(x.usedBy.kind).toBe("Staking");
+    });
+  });
+
+  it("Create/Load Lut Address", async () => {
+    if (!projectAddress) throw new Error("Project not found");
+    if (!lookupTableAddress) {
+      const slot = await connection.getSlot();
+      const [lookupTableInstruction, lookupTableAddressPub] =
+        web3.AddressLookupTableProgram.createLookupTable({
+          authority: adminKeypair.publicKey,
+          payer: adminKeypair.publicKey,
+          recentSlot: slot,
+        });
+
+      const extendLutInstruction =
+        web3.AddressLookupTableProgram.extendLookupTable({
+          addresses: [
+            new web3.PublicKey(projectAddress),
+            new web3.PublicKey(characterModelAddress),
+            new web3.PublicKey(stakingPoolAddress),
+            new web3.PublicKey(currencyAddress),
+            VAULT,
+            HPL_HIVE_CONTROL_PROGRAM,
+            HPL_CHARACTER_MANAGER_PROGRAM,
+            HPL_CURRENCY_MANAGER_PROGRAM,
+            web3.SYSVAR_CLOCK_PUBKEY,
+            web3.SYSVAR_INSTRUCTIONS_PUBKEY,
+            SPL_ACCOUNT_COMPRESSION_PROGRAM_ID,
+            SPL_NOOP_PROGRAM_ID,
+          ],
+          lookupTable: lookupTableAddressPub,
+          payer: adminKeypair.publicKey,
+          authority: adminKeypair.publicKey,
+        });
+
+      const txn = new web3.Transaction().add(
+        lookupTableInstruction,
+        extendLutInstruction
+      );
+
+      const { blockhash, lastValidBlockHeight } =
+        await connection.getLatestBlockhash();
+
+      txn.recentBlockhash = blockhash;
+      txn.lastValidBlockHeight = lastValidBlockHeight;
+      txn.feePayer = adminKeypair.publicKey;
+      txn.sign(adminKeypair);
+
+      sendTransaction(
+        {
+          transaction: base58.encode(txn.serialize()),
+          blockhash,
+          lastValidBlockHeight,
+        },
+        [adminKeypair],
+        "createLookupTable"
+      );
+
+      log("Lookup Table Address", lookupTableAddressPub.toString());
+      lookupTableAddress = lookupTableAddressPub.toString();
+    }
+    expect(lookupTableAddress).toBeTruthy();
+  });
+
+  it("UnStake Character", async () => {
+    const { character } = await client.findCharacters({
+      filters: {
+        owner: userKeypair.publicKey.toString(),
+        usedBy: {
+          kind: "Staking",
+        },
+      },
+      trees: characterModel.merkle_trees.merkle_trees.map((x) => x.toString()),
+    });
+    if (!character?.length) throw new Error("No characters to unstake");
+
+    const { createUnstakeCharactersTransactions: txResponse } =
+      await client.createUnstakeCharactersTransactions({
+        characterAddresses: character.map((x) => x!.address),
+        characterModel: characterModelAddress.toString(),
+        feePayer: userKeypair.publicKey.toString(),
+        lutAddresses: [lookupTableAddress],
+      });
+
+    await sendTransactions(
+      txResponse,
+      [userKeypair],
+      "createUnstakeCharactersTransactions"
+    );
+
+    const { character: characterRefetch } = await client.findCharacters({
+      addresses: character.map((x) => x!.address),
+    });
+    expect(characterRefetch.length).toBe(character.length);
+    characterRefetch.forEach((x) => {
+      expect(x.usedBy.kind).toBe("None");
+    });
+  });
 });

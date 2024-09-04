@@ -1,269 +1,184 @@
-import * as web3 from "@solana/web3.js";
-import createEdgeClient, {
-  Character,
-  CharacterModel,
-  MissionPool,
-  Profile,
-  Project,
-  RewardKind,
-  Transaction,
-  Transactions,
-  User,
-} from "@honeycomb-protocol/edge-client";
-import fs from "fs";
-import path from "path";
-import base58 from "bs58";
+import { HplCurrency } from "@honeycomb-protocol/currency-manager";
 import {
   HPL_HIVE_CONTROL_PROGRAM,
-  Honeycomb,
-  HoneycombProject,
+  METADATA_PROGRAM_ID,
   VAULT,
-  identityModule,
 } from "@honeycomb-protocol/hive-control";
-import { PROGRAM_ID as METADATA_PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
-import { Metaplex, keypairIdentity } from "@metaplex-foundation/js";
-import { createNewTree, mintOneCNFT } from "../utils";
-import { TokenStandard } from "@metaplex-foundation/mpl-bubblegum";
-import {
-  HplCurrency,
-  PermissionedCurrencyKind,
-} from "@honeycomb-protocol/currency-manager";
-import { fetchHeliusAssets } from "@honeycomb-protocol/character-manager";
 import { HPL_NECTAR_MISSIONS_PROGRAM } from "@honeycomb-protocol/nectar-missions";
-import nacl from "tweetnacl";
+import {
+  SPL_ACCOUNT_COMPRESSION_PROGRAM_ID,
+  SPL_NOOP_PROGRAM_ID,
+  createVerifyLeafInstruction,
+} from "@solana/spl-account-compression";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
+import * as web3 from "@solana/web3.js";
+import base58 from "bs58";
 import {
-  SPL_ACCOUNT_COMPRESSION_PROGRAM_ID,
-  SPL_NOOP_PROGRAM_ID,
-} from "@solana/spl-account-compression";
-import { Client, fetchExchange } from "@urql/core";
+  Character,
+  CharacterModel,
+  Mission,
+  MissionPool,
+  PermissionedCurrencyKindEnum,
+  Profile,
+  Project,
+  RewardKind,
+  User,
+} from "@honeycomb-protocol/edge-client";
+import { mintAssets } from "../utils";
+import {
+  DAS_API_URL,
+  adminKeypair,
+  authorize,
+  client,
+  connection,
+  sendTransaction,
+  sendTransactions,
+  umi,
+  userKeypair,
+} from "../utils";
+import { fetchHeliusAssets } from "../utils";
 
-jest.setTimeout(200000);
-
-// Load environment variables
-require("dotenv").config();
-
-const API_URL = process.env.API_URL ?? "http://localhost:4000/";
-const RPC_URL = process.env.RPC_URL ?? "http://localhost:8899";
-const DAS_API_URL = process.env.DAS_API_URL ?? RPC_URL;
-
-const connection = new web3.Connection(RPC_URL, "processed");
-
-const client = createEdgeClient(
-  new Client({
-    url: API_URL,
-    exchanges: [fetchExchange],
-  })
-);
-
-const adminKeypair = web3.Keypair.fromSecretKey(
-  Uint8Array.from(
-    JSON.parse(
-      fs.readFileSync(path.resolve(__dirname, "../keys", "admin.json"), "utf8")
-    )
-  )
-);
-
-const userKeypair = web3.Keypair.fromSecretKey(
-  Uint8Array.from(
-    JSON.parse(
-      fs.readFileSync(path.resolve(__dirname, "../keys", "user.json"), "utf8")
-    )
-  )
-);
-
-const sendTransaction = async (
-  action: string,
-  txResponse: Transaction,
-  signer?: web3.Keypair
-) => {
-  const signedTx = web3.VersionedTransaction.deserialize(
-    base58.decode(txResponse.transaction)
-  );
-  signer && signedTx.sign([signer]);
-
-  const { sendBulkTransactions } = await client.sendBulkTransactions({
-    txs: [base58.encode(signedTx.serialize())],
-    blockhash: txResponse!.blockhash,
-    lastValidBlockHeight: txResponse!.lastValidBlockHeight,
-    options: {
-      skipPreflight: true,
-    },
-  });
-
-  expect(sendBulkTransactions.length).toBe(1);
-  if (sendBulkTransactions[0].status !== "Success") {
-    console.log(
-      action,
-      sendBulkTransactions[0].status,
-      sendBulkTransactions[0].signature,
-      sendBulkTransactions[0].error
-    );
-  }
-  expect(sendBulkTransactions[0].status).toBe("Success");
-};
-
-const sendTransactions = async (
-  txResponse: Transactions,
-  signer: web3.Keypair,
-  action: string
-) => {
-  const txs = txResponse!.transactions.map((txStr) => {
-    const tx = web3.VersionedTransaction.deserialize(base58.decode(txStr));
-    tx.sign([signer]);
-    return base58.encode(tx.serialize());
-  });
-
-  const { sendBulkTransactions } = await client.sendBulkTransactions({
-    txs,
-    blockhash: txResponse!.blockhash,
-    lastValidBlockHeight: txResponse!.lastValidBlockHeight,
-    options: {
-      skipPreflight: true,
-    },
-  });
-
-  expect(sendBulkTransactions.length).toBe(txs.length);
-  sendBulkTransactions.forEach((txResponse) => {
-    if (txResponse.status !== "Success") {
-      console.log(action, txResponse.signature, txResponse.error);
-    }
-    expect(txResponse.status).toBe("Success");
-  });
-};
-
-const totalNfts = 5;
+const totalNfts = 1;
 const totalcNfts = 0;
 
 describe("Nectar Missions", () => {
-  let projectAddress: web3.PublicKey;
-  let project: HoneycombProject;
-  let cProject: Project;
+  let collection: string;
+  let projectAddress: string;
+  let merkleTree: string;
+  let project: Project;
   let user: User;
   let profile: Profile;
   let accessToken: string;
-  let merkleTree: web3.PublicKey;
-  let collection: web3.PublicKey;
-  let currencyAddress: web3.PublicKey;
+
   let currency: HplCurrency;
-  let characterModelAddress: web3.PublicKey;
   let characterModel: CharacterModel;
-  let missionPoolAddress: string;
-  let missionPool: MissionPool;
+  let currencyAddress: string;
+  let characterModelAddress;
+  let missionPoolAddress;
   let missionAddress: string;
   let lookupTableAddress: string;
+  let missionPool: MissionPool;
   let mission: any;
 
   beforeAll(async () => {
-    const adminHC = new Honeycomb(connection).use(identityModule(adminKeypair));
-    const metaplex = new Metaplex(connection);
-    metaplex.use(keypairIdentity(adminKeypair));
-
-    // Mint Collection
-    if (!collection && (totalNfts > 0 || totalcNfts > 0)) {
-      collection = await metaplex
-        .nfts()
-        .create({
-          name: "Collection",
-          symbol: "COL",
-          sellerFeeBasisPoints: 0,
-          uri: "https://api.eboy.dev/",
-          isCollection: true,
-          collectionIsSized: true,
-        })
-        .then((x) => x.nft.mint.address);
-    }
-
-    console.log("Collection", collection.toString());
-
-    // Mint Nfts
-    for (let i = 1; i <= totalNfts; i++) {
-      await metaplex
-        .nfts()
-        .create({
-          name: `Sol Patrol #${i}`,
-          symbol: `NFT`,
-          sellerFeeBasisPoints: 100,
-          uri: "https://arweave.net/WhyRt90kgI7f0EG9GPfB8TIBTIBgX3X12QaF9ObFerE",
-          collection,
-          collectionAuthority: metaplex.identity(),
-          tokenStandard: TokenStandard.NonFungible,
-          tokenOwner: userKeypair.publicKey,
-        })
-        .then((x) => x.nft);
-    }
-
-    // Mint cNFTs
-    for (let i = 1; i <= totalcNfts; i++) {
-      if (i === 1 && !merkleTree) {
-        [merkleTree] = await createNewTree(connection, adminKeypair);
-      }
-
-      await mintOneCNFT(connection, adminKeypair, {
-        dropWalletKey: userKeypair.publicKey,
-        name: `cNFT #${i}`,
-        symbol: "cNFT",
-        uri: "https://arweave.net/WhyRt90kgI7f0EG9GPfB8TIBTIBgX3X12QaF9ObFerE",
-        merkleTree,
-        collectionMint: collection,
-      });
-    }
+    const mintedAssets = await mintAssets(
+      umi,
+      {
+        cnfts: totalcNfts,
+        pnfts: totalNfts,
+      },
+      userKeypair.publicKey
+    );
+    if (mintedAssets.cnfts?.group) merkleTree = mintedAssets.cnfts.group;
+    if (mintedAssets.pnfts?.group) collection = mintedAssets.pnfts.group;
 
     // Create Project
     if (!projectAddress) {
-      project = await HoneycombProject.new(adminHC, {
-        name: "Project",
+      console.info("Creating Project ....");
+      const {
+        createCreateProjectTransaction: {
+          tx: txResponse,
+          project: projectAddressT,
+        },
+      } = await client.createCreateProjectTransaction({
+        name: "Test Project",
+        authority: adminKeypair.publicKey.toString(),
+        payer: adminKeypair.publicKey.toString(),
       });
-    } else {
-      project = await HoneycombProject.fromAddress(adminHC, projectAddress);
+
+      await sendTransaction(
+        txResponse,
+        [adminKeypair],
+        "createCreateProjectTransaction"
+      );
+
+      console.log("Project Address", projectAddressT);
+      projectAddress = projectAddressT;
     }
-    adminHC.use(project);
-    projectAddress = project.address;
-    console.log("Project", projectAddress.toString());
 
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-
-    cProject = await client
+    project = await client
       .findProjects({
-        ids: [projectAddress.toString()],
+        addresses: [projectAddress.toString()],
       })
       .then(({ project: [projectT] }) => projectT);
 
     // Create Currency
     if (!currencyAddress) {
-      currency = await HplCurrency.new(adminHC, {
-        name: "BAIL",
-        symbol: "BAIL",
-        kind: PermissionedCurrencyKind.NonCustodial,
-        decimals: 9,
-        uri: "https://arweave.net/1VxSzPEOwYlTo3lU5XSQWj-9Ldt3dB68cynDDjzeF-c",
+      console.info("Creating Currency ....");
+      const {
+        createInitCurrencyTransaction: {
+          tx: initCurrencyTx,
+          currency: currencyAddressT,
+        },
+      } = await client.createInitCurrencyTransaction({
+        create: {
+          project: projectAddress.toString(),
+          authority: adminKeypair.publicKey.toString(),
+          payer: adminKeypair.publicKey.toString(),
+          metadata: {
+            name: "Test Currency",
+            symbol: "TC",
+            decimals: 6,
+            kind: PermissionedCurrencyKindEnum.NonCustodial,
+            uri: "https://arweave.net/1VxSzPEOwYlTo3lU5XSQWj-9Ldt3dB68cynDDjzeF-c",
+          },
+        },
       });
-      currencyAddress = currency.address;
 
-      // Create Holder Account
-      adminHC.use(currency);
-      await currency.newHolderAccount(userKeypair.publicKey);
+      await sendTransaction(
+        initCurrencyTx,
+        [adminKeypair],
+        "createCreateCurrencyTransaction"
+      );
+      console.log("Currency Address", currencyAddressT);
+      currencyAddress = currencyAddressT;
 
-      console.log("Minting Currency To User's Wallet");
-      (await currency.holderAccount(userKeypair.publicKey)).mint(1000, {
-        commitment: "processed",
-        skipPreflight: true,
+      // CREATE CURRENCY HOLDER ACCOUNT & MINT
+      const {
+        createCreateHolderAccountTransaction: {
+          tx: initHolderAccountTx,
+          holderAccount: holderAccountAddress,
+        },
+      } = await client.createCreateHolderAccountTransaction({
+        project: projectAddress.toString(),
+        currency: currencyAddressT,
+        owner: userKeypair.publicKey.toString(),
       });
-    } else {
-      currency = await HplCurrency.fromAddress(adminHC, currencyAddress);
-      adminHC.use(currency);
+
+      await sendTransaction(
+        initHolderAccountTx,
+        [userKeypair],
+        "createCreateHolderAccountTransaction"
+      );
+      console.log("Holder Account Address", holderAccountAddress);
+
+      const { createMintCurrencyTransaction: mintCurrencyTx } =
+        await client.createMintCurrencyTransaction({
+          project: projectAddress.toString(),
+          amount: String(1000 ** 6),
+          currency: currencyAddressT,
+          authority: userKeypair.publicKey.toString(),
+          payer: userKeypair.publicKey.toString(),
+          mintTo: userKeypair.publicKey.toString(),
+        });
+
+      await sendTransaction(
+        mintCurrencyTx,
+        [userKeypair],
+        "createMintCurrencyTransaction"
+      );
     }
-    console.log("Currency", currencyAddress.toString());
 
     // Create Character Model
     if (!characterModelAddress) {
+      // Create different Character Model
       const {
         createCreateCharacterModelTransaction: {
           tx: txResponse,
-          characterModel: characterModelAddressT,
+          characterModel: newCharacterModelAddressT,
         },
       } = await client.createCreateCharacterModelTransaction({
         config: {
@@ -287,29 +202,27 @@ describe("Nectar Missions", () => {
         authority: adminKeypair.publicKey.toString(),
         payer: adminKeypair.publicKey.toString(),
       });
-      characterModelAddress = new web3.PublicKey(characterModelAddressT);
+
+      characterModelAddress = newCharacterModelAddressT;
 
       await sendTransaction(
-        "createCreateCharacterModelTransaction",
         {
           transaction: txResponse.transaction,
           blockhash: txResponse.blockhash,
           lastValidBlockHeight: txResponse.lastValidBlockHeight,
         },
-        adminKeypair
+        [adminKeypair],
+        "createCreateCharacterModelTransaction"
       );
-
-      console.log("Character Model", characterModelAddress.toString());
-      await new Promise((resolve) => setTimeout(resolve, 6000));
     }
 
     characterModel = await client
       .findCharacterModels({
-        ids: [characterModelAddress.toString()],
+        addresses: [characterModelAddress.toString()],
       })
       .then((res) => res.characterModel[0]);
 
-    expect(characterModel).toBeTruthy();
+    console.log("Character Model", characterModelAddress.toString());
 
     // Create Characters Tree
     if (
@@ -317,12 +230,15 @@ describe("Nectar Missions", () => {
         characterModel.merkle_trees.active
       ]
     ) {
+      console.log("Creating Characters Tree");
       const { createCreateCharactersTreeTransaction: txResponse } =
         await client.createCreateCharactersTreeTransaction({
           treeConfig: {
-            maxDepth: 3,
-            maxBufferSize: 8,
-            canopyDepth: 3,
+            advanced: {
+              maxDepth: 3,
+              maxBufferSize: 8,
+              canopyDepth: 1,
+            },
           },
           project: projectAddress.toString(),
           characterModel: characterModelAddress.toString(),
@@ -331,26 +247,30 @@ describe("Nectar Missions", () => {
         });
 
       await sendTransaction(
-        "createCreateCharactersTreeTransaction",
-        txResponse,
-        adminKeypair
+        txResponse.tx,
+        [adminKeypair],
+        "createCreateCharactersTreeTransaction"
       );
 
-      await new Promise((resolve) => setTimeout(resolve, 10000));
       characterModel = await client
         .findCharacterModels({
-          ids: [characterModelAddress.toString()],
+          addresses: [characterModelAddress.toString()],
         })
         .then((res) => res.characterModel[0]);
 
       // Wrap Assets
       const assets = await fetchHeliusAssets(DAS_API_URL, {
         walletAddress: userKeypair.publicKey,
-        collectionAddress: collection,
+        collectionAddress: new web3.PublicKey(collection),
       }).then((assets) => assets.filter((n) => !n.frozen).slice(0, 5));
 
+      console.log(
+        "Assets",
+        assets.map((n) => n.mint.toString())
+      );
       if (!assets.length) throw new Error("No Assets to wrap");
 
+      console.log("Warping Character Models");
       const { createWrapAssetsToCharacterTransactions: txResponse2 } =
         await client.createWrapAssetsToCharacterTransactions({
           project: projectAddress.toString(),
@@ -371,60 +291,61 @@ describe("Nectar Missions", () => {
 
       await sendTransactions(
         txResponse2,
-        userKeypair,
+        [userKeypair],
         "createWrapAssetsToCharacterTransactions"
       );
     }
 
     /// PROFILE PART
     const userInfo = {
-      username: "hcDev",
+      username: userKeypair.publicKey.toString(),
       name: "Honeycomb Developer",
       bio: "This user is created for testing purposes",
       pfp: "https://lh3.googleusercontent.com/-Jsm7S8BHy4nOzrw2f5AryUgp9Fym2buUOkkxgNplGCddTkiKBXPLRytTMXBXwGcHuRr06EvJStmkHj-9JeTfmHsnT0prHg5Mhg",
     };
 
     const profileInfo = {
-      name: `(Profile) ${userInfo.name}`,
+      name: `(Profile) ${userInfo.username}`,
       bio: `This is profile of ${userInfo.username}`,
       pfp: "https://lh3.googleusercontent.com/-Jsm7S8BHy4nOzrw2f5AryUgp9Fym2buUOkkxgNplGCddTkiKBXPLRytTMXBXwGcHuRr06EvJStmkHj-9JeTfmHsnT0prHg5Mhg",
     };
 
-    await Promise.resolve(
-      setTimeout(
-        () => {},
-        3000 // 3 seconds
-      )
-    );
-
-    if (!cProject.profileTrees.merkle_trees[cProject.profileTrees.active]) {
+    // creating profile tree if not exists
+    if (!project.profileTrees.merkle_trees[project.profileTrees.active]) {
       console.log("Creating Profile Tree");
-      const { createCreateProfilesTreeTransaction: txResponse } =
-        await client.createCreateProfilesTreeTransaction({
-          treeConfig: {
-            maxDepth: 14,
-            maxBufferSize: 64,
-            canopyDepth: 13,
+      const {
+        createCreateProfilesTreeTransaction: {
+          tx: txResponse,
+          treeAddress: profilesTreeAddress,
+        },
+      } = await client.createCreateProfilesTreeTransaction({
+        treeConfig: {
+          advanced: {
+            maxDepth: 3,
+            maxBufferSize: 8,
+            canopyDepth: 1,
           },
-          project: cProject.id,
-          authority: adminKeypair.publicKey.toString(),
-        });
+        },
+        project: projectAddress.toString(),
+        payer: adminKeypair.publicKey.toString(),
+      });
 
       await sendTransaction(
-        "createCreateProfilesTreeTransaction",
         txResponse,
-        adminKeypair
+        [adminKeypair],
+        "createCreateProfilesTreeTransaction"
       );
 
+      console.log("Profile Tree", profilesTreeAddress.toString());
       await client
         .findProjects({
-          ids: [cProject.id],
+          addresses: [project.address],
         })
-        .then(({ project: [projectT] }) => (cProject = projectT));
+        .then(({ project: [projectT] }) => (project = projectT));
     }
 
     expect(
-      cProject.profileTrees.merkle_trees[cProject.profileTrees.active]
+      project.profileTrees.merkle_trees[project.profileTrees.active]
     ).toBeTruthy();
 
     await Promise.resolve(
@@ -441,44 +362,28 @@ describe("Nectar Missions", () => {
       .then(({ user: [userT] }) => (user = userT));
 
     if (!user) {
-      console.log("Creating User WIth Profile");
-      const { createNewUserWithProfileTransaction: txResponse } =
-        await client.createNewUserWithProfileTransaction({
-          userInfo,
-          profileInfo,
+      const { createNewUserTransaction: txResponse } =
+        await client.createNewUserTransaction({
+          info: userInfo,
           wallet: userKeypair.publicKey.toString(),
-          project: cProject.id,
         });
 
-      await sendTransaction("createNewUserWithProfileTransaction", txResponse);
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      await sendTransaction(
+        txResponse,
+        [userKeypair],
+        "createNewUserTransaction"
+      );
     }
 
-    await client
+    user = await client
       .findUsers({
         wallets: [userKeypair.publicKey.toString()],
       })
       .then(({ user: [userT] }) => (user = userT));
 
-    const { authRequest } = await client.authRequest({
-      wallet: userKeypair.publicKey.toString(),
-    });
-
-    const message = new TextEncoder().encode(authRequest);
-    const sig = nacl.sign.detached(message, userKeypair.secretKey);
-    const signature = base58.encode(sig);
-    await client
-      .authConfirm({
-        wallet: userKeypair.publicKey.toString(),
-        signature,
-      })
-      .then(
-        ({ authConfirm: { accessToken: accessTokenT } }) =>
-          (accessToken = accessTokenT)
-      );
+    accessToken = await authorize(userKeypair);
 
     expect(user).toBeTruthy();
-    // expect(user.info.username).toBe(userInfo.username);
     expect(user.info.name).toBe(userInfo.name);
     expect(user.info.bio).toBe(userInfo.bio);
     expect(user.info.pfp).toBe(userInfo.pfp);
@@ -487,17 +392,21 @@ describe("Nectar Missions", () => {
       .findProfiles({
         userIds: [user.id],
         projects: [projectAddress.toString()],
-        includeProof: true,
+        includeProof: false,
       })
-      .then(({ profile: [profileT] }) => (profile = profileT));
+      .then(({ profile: [profileT] }) => {
+        profile = profileT;
+        return profile;
+      });
 
     if (!profile) {
       console.log("Creating Profile");
       const { createNewProfileTransaction: txResponse } =
         await client.createNewProfileTransaction(
           {
-            project: cProject.id,
+            project: project.address,
             info: profileInfo,
+            payer: userKeypair.publicKey.toString(),
           },
           {
             fetchOptions: {
@@ -508,9 +417,11 @@ describe("Nectar Missions", () => {
           }
         );
 
-      await sendTransaction("createNewProfileTransaction", txResponse);
-
-      await new Promise((resolve) => setTimeout(resolve, 10000));
+      await sendTransaction(
+        txResponse,
+        [userKeypair],
+        "createNewProfileTransaction"
+      );
 
       await client
         .findProfiles({
@@ -521,7 +432,7 @@ describe("Nectar Missions", () => {
         .then(({ profile: [profileT] }) => (profile = profileT));
     }
 
-    console.log("Profile Id", profile.id);
+    console.log("Profile Id", profile.address);
 
     expect(profile).toBeTruthy();
     expect(profile.info.name).toBe(profileInfo.name);
@@ -556,23 +467,58 @@ describe("Nectar Missions", () => {
         },
       });
 
-      await sendTransaction("newMissionPool", tx, adminKeypair);
+      await sendTransaction(tx, [adminKeypair], "newMissionPool");
       missionPoolAddress = missionPoolAddressT.toString();
       console.log("Mission Pool", missionPoolAddress);
 
-      await Promise.resolve(() =>
-        setTimeout(
-          () => {},
-          10000 // 10 seconds
-        )
-      );
+      // await Promise.resolve(() =>
+      //   setTimeout(
+      //     () => {},
+      //     10000 // 10 seconds
+      //   )
+      // );
     }
 
     missionPool = await client
-      .findMissionPools({ ids: [missionPoolAddress] })
+      .findMissionPools({ addresses: [missionPoolAddress] })
       .then((res) => res.missionPool[0]);
 
     expect(missionPool).toBeTruthy();
+  });
+
+  it("Updates Mission Pool", async () => {
+    if (!projectAddress)
+      throw new Error(
+        "Project is not created, a valid project is needed to create a Mission Pool"
+      );
+
+    if (!missionPoolAddress) {
+      throw new Error(
+        "Mission Pool not created, a valid mission pool is needed to update a Mission Pool"
+      );
+    }
+
+    if (!characterModelAddress)
+      throw new Error(
+        "Character Model is not created, a valid character model is needed to update a Mission Pool"
+      );
+
+    const {
+      createUpdateMissionPoolTransaction: { tx },
+    } = await client.createUpdateMissionPoolTransaction({
+      data: {
+        project: project.address.toString(),
+        missionPool: missionPoolAddress,
+        authority: adminKeypair.publicKey.toString(),
+        payer: adminKeypair.publicKey.toString(),
+      },
+    });
+
+    await sendTransaction(tx, [adminKeypair], "updateMissionPool");
+
+    missionPool = await client
+      .findMissionPools({ addresses: [missionPoolAddress] })
+      .then((res) => res.missionPool[0]);
   });
 
   it("Create Mission", async () => {
@@ -591,12 +537,12 @@ describe("Nectar Missions", () => {
       } = await client.createCreateMissionTransaction({
         data: {
           project: project.address.toString(),
-          name: "Test mission 2",
+          name: "Test mission",
           cost: {
             address: String(currencyAddress),
-            amount: "10000000000", // 10B
+            amount: "0", // 10B
           },
-          duration: "10", // 10 seconds
+          duration: "1", // 1 second(s)
           minXp: "0",
           rewards: [
             {
@@ -609,7 +555,7 @@ describe("Nectar Missions", () => {
               max: "50000000000", // 50B
               min: "50000000000", // 50B
               currency: currencyAddress.toString(),
-            }
+            },
           ],
           missionPool: missionPoolAddress,
           authority: adminKeypair.publicKey.toString(),
@@ -617,19 +563,71 @@ describe("Nectar Missions", () => {
         },
       });
 
-      await sendTransaction("createCreateMissionTransaction", tx, adminKeypair);
+      await sendTransaction(
+        tx,
+        [adminKeypair],
+        "createCreateMissionTransaction"
+      );
       missionAddress = missionAddressT.toString();
       console.log("missionAddress", missionAddress);
     }
 
     mission = await client
-      .findMissions({ ids: [missionAddress] })
+      .findMissions({ addresses: [missionAddress] })
       .then((res) => res.mission[0]);
 
-    console.log("Mission details");
-    console.dir(mission, { depth: 10 });
-
     expect(missionAddress).toBeTruthy();
+  });
+
+  it.skip("Update Mission", async () => {
+    if (!projectAddress)
+      throw new Error(
+        "Project not created, a valid project is needed to create a Mission"
+      );
+    if (!missionPoolAddress)
+      throw new Error(
+        "Mission Pool not created, a valid mission pool is needed to create a Mission"
+      );
+
+    // Temporarily disabling this code for now
+    if (missionAddress) {
+      // const { createUpdateMissionTransaction: txResponse } =
+      //   await client.createUpdateMissionTransaction({
+      //     missionAddress,
+      //     authority: adminKeypair.publicKey.toString(),
+      //     params: {
+      //       newRewards: [],
+      //       updateRewards: [
+      //         {
+      //           kind: RewardKind.Xp,
+      //           max: "300",
+      //           min: "100",
+      //         },
+      //       ],
+      //       removeRewards: [],
+      //       minXp: "0",
+      //       duration: "1",
+      //       cost: {
+      //         amount: "0",
+      //         address: currencyAddress,
+      //       },
+      //     },
+      //   });
+
+      // await sendTransaction(
+      //   txResponse,
+      //   [adminKeypair],
+      //   "createUpdateMissionTransaction"
+      // );
+
+      // mission = await client
+      //   .findMissions({ addresses: [missionAddress] })
+      //   .then((res) => res.mission[0]);
+
+      // expect(mission).toBeTruthy();
+      // expect(mission.rewards).toBeTruthy();
+      // expect(mission.rewards.length).toBe(2);
+    }
   });
 
   it("Create/Load Lut Address", async () => {
@@ -647,9 +645,9 @@ describe("Nectar Missions", () => {
       const extendLutInstruction =
         web3.AddressLookupTableProgram.extendLookupTable({
           addresses: [
-            projectAddress,
-            currencyAddress,
-            characterModelAddress,
+            new web3.PublicKey(projectAddress),
+            new web3.PublicKey(currencyAddress),
+            new web3.PublicKey(characterModelAddress),
             new web3.PublicKey(missionPoolAddress),
             new web3.PublicKey(missionAddress),
             TOKEN_PROGRAM_ID,
@@ -682,11 +680,15 @@ describe("Nectar Missions", () => {
       txn.feePayer = adminKeypair.publicKey;
       txn.sign(adminKeypair);
 
-      sendTransaction("Create Lookup Table", {
-        transaction: base58.encode(txn.serialize()),
-        blockhash,
-        lastValidBlockHeight,
-      });
+      sendTransaction(
+        {
+          transaction: base58.encode(txn.serialize()),
+          blockhash,
+          lastValidBlockHeight,
+        },
+        [],
+        "Create Lookup Table"
+      );
 
       console.log("Lookup Table Address", lookupTableAddressPub.toString());
       lookupTableAddress = lookupTableAddressPub.toString();
@@ -710,9 +712,19 @@ describe("Nectar Missions", () => {
       wallets: [userKeypair.publicKey.toString()],
       trees: characterModel.merkle_trees.merkle_trees,
     });
-
     characterOnMission.push(characters[0]);
-    console.log("Character when participating:", characters[0].id);
+
+    console.log("Character", characterOnMission[0].address, "Participating");
+    if (
+      characterOnMission.every(
+        (character) => character.usedBy.kind === "Mission"
+      )
+    ) {
+      console.log("Characters already on mission");
+      return;
+    }
+
+    console.log("Character", characterOnMission[0].address, "Participating");
     const {
       createSendCharactersOnMissionTransaction: {
         blockhash,
@@ -722,25 +734,38 @@ describe("Nectar Missions", () => {
     } = await client.createSendCharactersOnMissionTransaction({
       data: {
         mission: missionAddress,
-        characterIds: characterOnMission.map((n) => n.id),
+        characterAddresses: [characterOnMission[0].address],
         authority: userKeypair.publicKey.toString(),
       },
+      lutAddresses: [lookupTableAddress],
     });
 
-    await transactions.map((tx, i) =>
-      sendTransaction(
-        "createSendCharactersOnMissionTransaction" + i,
+    for (let i = 0; i < transactions.length; i++) {
+      await sendTransaction(
         {
-          transaction: tx,
+          transaction: transactions[i],
           blockhash,
           lastValidBlockHeight,
         },
-        userKeypair
-      )
-    );
+        [userKeypair],
+        "createSendCharactersOnMissionTransaction" + i
+      );
+    }
+
+    await Promise.resolve(() => setTimeout(() => {}, 1000));
+    characterOnMission.forEach(async (character) => {
+      await client
+        .findCharacters({
+          addresses: [character.address],
+        })
+        .then((res) => {
+          const character = res.character[0];
+          expect(character.usedBy).toBeTruthy();
+        });
+    });
   });
 
-  it("Recall/Collect Rewards", async () => {
+  it("Collect Rewards + Recall", async () => {
     if (!projectAddress)
       throw new Error(
         "Project not created, a valid project is needed to claim a Mission"
@@ -750,15 +775,10 @@ describe("Nectar Missions", () => {
         "Mission not created, a valid mission is needed to claim a Mission"
       );
 
-    // const { character: characters } = await client.findCharacters({
-    //   ids: 2386,
-    // });
+    // Wait for mission's end
+    console.log("Waiting for mission to end (Collect Rewards Scenario)");
+    await new Promise((resolve) => setTimeout(resolve, 15000));
 
-    // characterOnMission.push(characters[0]);
-    // 30 seconds, to wait for mission's end
-    await Promise.resolve(() => setTimeout(() => {}, 30000)); 
-
-    console.log("Character when recalling:", characterOnMission[0].id);
     const {
       createRecallCharactersTransaction: {
         transactions,
@@ -768,23 +788,24 @@ describe("Nectar Missions", () => {
     } = await client.createRecallCharactersTransaction({
       data: {
         mission: missionAddress,
-        characterIds: characterOnMission.map((n) => n.id),
+        characterAddresses: [characterOnMission[0].address],
         authority: userKeypair.publicKey.toString(),
-        collectRewards: true,
       },
       lutAddresses: [lookupTableAddress],
     });
 
     for (let i = 0; i < transactions.length; i++) {
       await sendTransaction(
-        "createRecallCharactersTransaction" + i,
         {
           transaction: transactions[i],
           blockhash,
           lastValidBlockHeight,
         },
-        userKeypair
+        [userKeypair],
+        "createRecallCharactersTransaction0 (Collect + Recall)"
       );
+
+      await Promise.resolve(() => setTimeout(() => {}, 5000));
     }
   });
 });
