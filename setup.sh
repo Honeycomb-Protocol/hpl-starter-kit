@@ -2,6 +2,38 @@
 
 ENV_FILE=".env"
 
+install_solana_cli() {
+    if ! command -v solana &> /dev/null; then
+        echo "Solana CLI not found. Installing..."
+        sh -c "$(curl -sSfL https://release.solana.com/v1.18.18/install)"
+    else
+        echo "Solana CLI already installed."
+    fi
+}
+
+install_deps() {
+    echo "Installing dependencies..."
+    read -p "Do you want to install Solana CLI? (y/n): " install_solana
+    if [ "$install_solana" == "y" ]; then
+        install_solana_cli
+    fi
+
+    read -p "Do you use yarn or npm for package management? (1 for Yarn, 2 for NPM, type anything else to cancel): " package_manager
+    if [ "$package_manager" == "1" ]; then
+        if ! command -v yarn &> /dev/null; then
+            echo "Yarn not found. Installing..."
+            npm install -g yarn
+        else
+            echo "Yarn already installed."
+        fi
+        yarn install
+    elif [ "$package_manager" == "2" ]; then
+        npm install
+    else
+        echo "Skipping package installation."
+    fi
+}
+
 add_env_variable() {
     VAR_NAME=$1
     VAR_VALUE=$2
@@ -12,6 +44,21 @@ add_env_variable() {
         echo "${VAR_NAME} already exists in .env."
     fi
 }
+
+generate_keypair() {
+    local key_file=$1
+    if [ -f "$key_file" ]; then
+        read -p "$key_file already exists. Do you want to overwrite it? (y/n): " overwrite
+        if [ "$overwrite" != "y" ]; then
+            echo "Skipping $key_file keypair generation."
+            return
+        fi
+    fi
+    echo "Generating $key_file keypair..."
+    solana-keygen new --outfile "$key_file" --no-bip39-passphrase --force
+}
+
+install_deps
 
 if [ ! -f "$ENV_FILE" ]; then
     echo "Creating .env file..."
@@ -36,15 +83,17 @@ else
 fi
 
 echo "Generating admin keypair..."
-solana-keygen new --outfile keys/admin.json --no-bip39-passphrase --force
+generate_keypair "keys/admin.json"
 
 echo "Generating user keypair..."
-solana-keygen new --outfile keys/user.json --no-bip39-passphrase --force
+generate_keypair "keys/user.json"
 
 echo "Airdropping 100 SOL to admin..."
 solana airdrop 100 --url $RPC_URL -k ./keys/admin.json
+echo "100 Honeynet SOL airdropped to admin."
 
 echo "Airdropping 100 SOL to user..."
 solana airdrop 100 --url $RPC_URL -k ./keys/user.json
+echo "100 Honeynet SOL airdropped to user."
 
-echo "Script completed. You can start running the tests now."
+echo "Script completed. Happy testing!"
