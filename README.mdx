@@ -4,15 +4,51 @@ This repository contains a collection of demos that showcase how to use the Hone
 
 ## Steps
 
-1. Make sure to [install Solana CLI](https://docs.solanalabs.com/cli/install) (needed for generating keys).
+There are two ways to setup the demos:
 
-2. Run `yarn` or `npm` to install all dependencies.
+### 1. Use the setup script
 
-3. Run the setup script located at the root of this repo. The script will generate everything, including the keys, for you. If you're on Windows, you'll need to run the .sh file in either Bash or WSL since it's a Unix shell script.
+1. Run the setup script located at the root of this repo. The script will install all dependencies and generate everything for you. If you're on Windows, you'll need to run the .sh file in either Bash or WSL since it's a Unix shell script.
 
 ```bash
 ./setup.sh
 ```
+
+### 2. Manual setup
+
+1. Make sure to [install Solana CLI](https://docs.solanalabs.com/cli/install) (needed for generating keys).
+
+2. Run `yarn` or `npm` to install all dependencies.
+
+3. Generate the keys needed for the demos. You can do this by running the following command:
+
+```bash
+solana-keygen new --outfile ./keys/admin.json
+```
+
+```bash
+solana-keygen new --outfile ./keys/user.json
+```
+
+4. Airdrop some SOL to the admin and user accounts. You can do this by running the following command:
+
+```bash
+solana airdrop 10 --url https://rpc.test.honeycombprotocol.com/ --keypair ./keys/admin.json
+```
+
+```bash
+solana airdrop 10 --url https://rpc.test.honeycombprotocol.com/ --keypair ./keys/user.json
+```
+
+5. Create a `.env` file at the root of this repo and add the following:
+
+```env
+API_URL="https://edge.test.honeycombprotocol.com/"
+RPC_URL="https://rpc.test.honeycombprotocol.com/"
+DAS_API_URL="https://edge.test.honeycombprotocol.com/"
+```
+
+You're all set, you can now run the demos.
 
 ## Running the demos
 
@@ -21,23 +57,17 @@ Each demo covers a different use-case of Honeycomb. The demos are written as tes
 To run all the demos, use the following command:
 
 ```bash
-
 yarn test
-
 ```
 
 To run a specific demo, use the following command:
 
 ```bash
-
 yarn test <filename without .test.ts>
-
 ```
 
 For example:
 
 ```bash
-
 yarn test hiveControl
-
 ```
