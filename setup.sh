@@ -62,16 +62,13 @@ install_deps
 
 if [ ! -f "$ENV_FILE" ]; then
     echo "Creating .env file..."
-    touch .env
-    add_env_variable "API_URL" "https://edge.test.honeycombprotocol.com/"
-    add_env_variable "RPC_URL" "https://rpc.test.honeycombprotocol.com/"
-    add_env_variable "DAS_API_URL" "https://edge.test.honeycombprotocol.com/"
+    touch "$ENV_FILE"
 else
     echo ".env file already exists. Checking if the required variables are present..."
-    add_env_variable "API_URL" "https://edge.test.honeycombprotocol.com/"
-    add_env_variable "RPC_URL" "https://rpc.test.honeycombprotocol.com/"
-    add_env_variable "DAS_API_URL" "https://edge.test.honeycombprotocol.com/"
 fi
+add_env_variable "API_URL" "https://edge.test.honeycombprotocol.com/"
+add_env_variable "RPC_URL" "https://rpc.test.honeycombprotocol.com/"
+add_env_variable "DAS_API_URL" "https://edge.test.honeycombprotocol.com/"
 
 export $(grep -v '^#' "$ENV_FILE" | xargs)
 
