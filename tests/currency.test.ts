@@ -12,7 +12,7 @@ import {
     log,
 } from "../utils";
 
-describe.skip("Currency Manager", () => {
+describe("Currency Manager", () => {
     let projectAddress: string;
     let currencyAddress: string;
     let project: Project;
@@ -109,7 +109,7 @@ describe.skip("Currency Manager", () => {
 
             const response = await sendTransaction(
                 tx,
-                [adminKeypair],
+                [userKeypair],
                 "createCreateHolderAccountTransaction"
             );
             expect(response.status).toBe("Success");
@@ -144,7 +144,7 @@ describe.skip("Currency Manager", () => {
 
         const response = await sendTransaction(
             createSetHolderStatusTransaction,
-            [adminKeypair],
+            [userKeypair],
             "createSetHolderStatusTransaction"
         );
         expect(response.status).toBe("Success");
@@ -197,7 +197,7 @@ describe.skip("Currency Manager", () => {
 
         const response = await sendTransaction(
             createBurnCurrencyTransaction,
-            [adminKeypair],
+            [userKeypair],
             "createBurnCurrencyTransaction"
         );
         expect(response.status).toBe("Success");
@@ -218,7 +218,7 @@ describe.skip("Currency Manager", () => {
 
         const response = await sendTransaction(
             createTransferCurrencyTransaction,
-            [adminKeypair],
+            [userKeypair],
             "createTransferCurrencyTransaction"
         );
         expect(response.status).toBe("Success");
@@ -254,7 +254,7 @@ describe.skip("Currency Manager", () => {
         expect(response.status).toBe("Success");
     });
 
-    it.skip("Revoke Delegation", async () => {
+    it("Revoke Delegation", async () => {
         if (!projectAddress) throw new Error("Project not found");
         if (!currencyAddress) throw new Error("Currency not found");
 
