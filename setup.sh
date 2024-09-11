@@ -1,6 +1,7 @@
 #!/bin/bash
 
 ENV_FILE=".env"
+SOLS_TO_AIRDROP=1000
 
 install_solana_cli() {
     if ! command -v solana &> /dev/null; then
@@ -89,12 +90,12 @@ generate_keypair "keys/admin.json"
 echo "Generating user keypair..."
 generate_keypair "keys/user.json"
 
-echo "Airdropping SOL to admin..."
-solana airdrop 1000 --url $RPC_URL -k ./keys/admin.json
-echo "Honeynet SOL airdropped to admin."
+echo "Airdropping ${SOLS_TO_AIRDROP} SOL to admin..."
+solana airdrop ${SOLS_TO_AIRDROP} --url $RPC_URL -k ./keys/admin.json
+echo "${SOLS_TO_AIRDROP} Honeynet SOL airdropped to admin."
 
-echo "Airdropping SOL to user..."
-solana airdrop 1000 --url $RPC_URL -k ./keys/user.json
-echo "Honeynet SOL airdropped to user."
+echo "Airdropping ${SOLS_TO_AIRDROP} SOL to user..."
+solana airdrop ${SOLS_TO_AIRDROP} --url $RPC_URL -k ./keys/user.json
+echo "${SOLS_TO_AIRDROP} Honeynet SOL airdropped to user."
 
 echo "Script completed. Happy testing!"
