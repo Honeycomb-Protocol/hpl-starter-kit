@@ -23,7 +23,7 @@ install_deps() {
     if [ "$package_manager" == "1" ]; then
         if ! command -v yarn &> /dev/null; then
             echo "Yarn not found. Installing..."
-            npm install -g yarn
+            npm install -g yarn@1.22.22
         else
             echo "Yarn already installed."
         fi
@@ -39,11 +39,20 @@ add_env_variable() {
     VAR_NAME=$1
     VAR_VALUE=$2
 
-    if ! grep -q "^${VAR_NAME}=" "$ENV_FILE"; then
+    # if ! grep -q "^${VAR_NAME}=" "$ENV_FILE"; then
+    #     echo "Adding ${VAR_NAME} to .env..."
+    #     echo "${VAR_NAME}=${VAR_VALUE}" >> "$ENV_FILE"
+    # else
+    #     echo "${VAR_NAME} already exists in .env."
+    # fi
+
+    if grep -q "^${VAR_NAME}=" "$ENV_FILE"; then
+        echo "Replacing ${VAR_NAME} in .env..."
+        # Use sed to replace the line containing the variable
+        sed -i "/^${VAR_NAME}=/c\\${VAR_NAME}=${VAR_VALUE}" "$ENV_FILE"
+    else
         echo "Adding ${VAR_NAME} to .env..."
         echo "${VAR_NAME}=${VAR_VALUE}" >> "$ENV_FILE"
-    else
-        echo "${VAR_NAME} already exists in .env."
     fi
 }
 
