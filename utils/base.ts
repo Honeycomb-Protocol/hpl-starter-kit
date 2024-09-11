@@ -1,7 +1,7 @@
 import * as web3 from "@solana/web3.js";
 import fs from "fs";
 import path from "path";
-import createEdgeClient, { Transaction, Transactions } from "@honeycomb-protocol/edge-client";
+import createEdgeClient, { AdvancedTreeConfig, BadgesCondition, Project, Transaction, Transactions } from "@honeycomb-protocol/edge-client";
 import {
   sendTransactionsForTests as sendTransactionsT,
   sendTransactionForTests as sendTransactionT,
@@ -14,12 +14,20 @@ import {
   Honeycomb,
   identityModule,
 } from "@honeycomb-protocol/hive-control";
+import { AssetResponse } from ".";
+import createLibreplexProgram from "./programs/libreplex_fair_launch";
 
 try {
   jest.setTimeout(200000);
 } catch {}
 
 require("dotenv").config();
+
+export function wait(seconds = 2): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, seconds * 1000);
+  });
+}
 
 export const API_URL = process.env.API_URL ?? "https://edge.eboy.dev/";
 export const RPC_URL = process.env.RPC_URL ?? "https://rpc.eboy.dev/";
@@ -54,13 +62,20 @@ export const adminHC = new Honeycomb(connection).use(
   identityModule(adminKeypair)
 );
 export const bundlr = adminHC.storage() as BundlrClient;
+
+export const libreplexFairLaunchProgram = createLibreplexProgram(
+  connection,
+  adminKeypair
+);
+
 export const log = process.env.NO_LOG == "true" ? () => {} : console.log;
 export const errorLog = process.env.NO_LOG == "true" ? () => {} : console.error;
 export const dirLog = process.env.NO_LOG == "true" ? () => {} : console.dir;
 export const sendTransaction = async (
   txResponse: Transaction,
   signers: web3.Keypair[],
-  action?: string
+  action?: string,
+  logOnSuccess = false
 ) => {
   const response = await sendTransactionT(
     sseClient,
@@ -71,11 +86,11 @@ export const sendTransaction = async (
     },
     signers,
     {
-      skipPreflight: true,
-      commitment: "finalized",
+      skipPreflight: false,
+      // commitment: "finalized",
     }
   );
-  if (response.status !== "Success") {
+  if (logOnSuccess || response.status !== "Success") {
     log(action, response.status, response.signature, response.error);
   }
   expect(response.status).toBe("Success");
@@ -133,4 +148,175 @@ export function makeid(length) {
     counter += 1;
   }
   return result;
+}
+
+export async function createProject(
+  name = "Test Project",
+  authority = adminKeypair.publicKey.toString(),
+  payer = adminKeypair.publicKey.toString(),
+  subsidizeFees = true,
+  createProfilesTree = true,
+  createBadgingCriteria = true
+) {
+  const {
+    createCreateProjectTransaction: { project: projectAddress, tx: txResponse },
+  } = await client.createCreateProjectTransaction({
+    name,
+    authority,
+    payer,
+    subsidizeFees,
+  });
+  await sendTransaction(
+    txResponse,
+    [adminKeypair],
+    "createCreateProjectTransaction"
+  );
+  let project = await client
+    .findProjects({ addresses: [projectAddress] })
+    .then((res) => res.project[0]);
+  expect(project).toBeTruthy();
+
+  if (subsidizeFees) {
+    const { blockhash, lastValidBlockHeight } =
+      await connection.getLatestBlockhash();
+    const versionedTx = new web3.VersionedTransaction(
+      new web3.TransactionMessage({
+        instructions: [
+          web3.SystemProgram.transfer({
+            fromPubkey: adminKeypair.publicKey,
+            toPubkey: new web3.PublicKey(projectAddress),
+            lamports: 1_000_000_000,
+          }),
+        ],
+        payerKey: adminKeypair.publicKey,
+        recentBlockhash: blockhash,
+      }).compileToV0Message([])
+    );
+    versionedTx.sign([adminKeypair]);
+    await sendTransaction(
+      {
+        transaction: base58.encode(versionedTx.serialize()),
+        blockhash,
+        lastValidBlockHeight,
+      },
+      [adminKeypair],
+      "fundProjectForSubsidy"
+    );
+  }
+
+  if (createProfilesTree) {
+    const {
+      createCreateProfilesTreeTransaction: { tx: txResponse },
+    } = await client.createCreateProfilesTreeTransaction({
+      treeConfig: {
+        advanced: {
+          maxDepth: 3,
+          maxBufferSize: 8,
+          canopyDepth: 3,
+        },
+      },
+      project: project.address,
+      payer: adminKeypair.publicKey.toString(),
+    });
+    await sendTransaction(
+      txResponse,
+      [adminKeypair],
+      "createCreateProfilesTreeTransaction"
+    );
+
+    project = await client
+      .findProjects({
+        addresses: [project.address],
+      })
+      .then(({ project: [project] }) => project);
+
+    expect(
+      project.profileTrees.merkle_trees[project.profileTrees.active]
+    ).toBeTruthy();
+  }
+
+  if (createBadgingCriteria) {
+    const { createInitializeBadgeCriteriaTransaction: txResponse } =
+      await client.createInitializeBadgeCriteriaTransaction({
+        args: {
+          authority: adminKeypair.publicKey.toString(),
+          projectAddress,
+          endTime: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,
+          startTime: Math.floor(Date.now() / 1000),
+          badgeIndex: 0,
+          payer: adminKeypair.publicKey.toString(),
+          condition: BadgesCondition.Public,
+        },
+      });
+
+    await sendTransaction(
+      txResponse,
+      [adminKeypair],
+      "createInitializeBadgeCriteriaTransaction"
+    );
+
+    project = await client
+      .findProjects({ addresses: [projectAddress] })
+      .then((res) => res.project[0]);
+    expect(project.badgeCriteria?.[0]).toBeTruthy();
+  }
+
+  return project;
+}
+
+export async function createCharacterModel(
+  project: Project,
+  assets: AssetResponse,
+  treeConfig: AdvancedTreeConfig
+) {
+  const {
+    createCreateCharacterModelTransaction: {
+      tx: createTx,
+      characterModel: characterModelAddress,
+    },
+  } = await client.createCreateCharacterModelTransaction({
+    config: {
+      kind: "Wrapped",
+      criterias: Object.values(assets).map(({ group, asset }) => ({
+        kind: asset == "MPL_BG" ? "MerkleTree" : "Collection",
+        params: group.toString(),
+      })),
+    },
+    project: project.address,
+    authority: adminKeypair.publicKey.toString(),
+    payer: adminKeypair.publicKey.toString(),
+  });
+
+  await sendTransaction(
+    createTx,
+    [adminKeypair],
+    "createCreateCharacterModelTransaction"
+  );
+
+  const {
+    createCreateCharactersTreeTransaction: { tx: createTreeTx },
+  } = await client.createCreateCharactersTreeTransaction({
+    treeConfig: {
+      advanced: treeConfig,
+    },
+    project: project.address,
+    characterModel: characterModelAddress,
+    authority: adminKeypair.publicKey.toString(),
+    payer: adminKeypair.publicKey.toString(),
+  });
+
+  await sendTransaction(
+    createTreeTx,
+    [adminKeypair],
+    "createCreateCharactersTreeTransaction"
+  );
+
+  const characterModel = await client
+    .findCharacterModels({
+      addresses: [characterModelAddress],
+    })
+    .then((res) => res.characterModel[0]);
+  expect(characterModel).toBeTruthy();
+
+  return characterModel;
 }

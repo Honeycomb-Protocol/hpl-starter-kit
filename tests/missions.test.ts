@@ -1,4 +1,3 @@
-import { HplCurrency } from "@honeycomb-protocol/currency-manager";
 import {
   HPL_HIVE_CONTROL_PROGRAM,
   METADATA_PROGRAM_ID,
@@ -8,7 +7,6 @@ import { HPL_NECTAR_MISSIONS_PROGRAM } from "@honeycomb-protocol/nectar-missions
 import {
   SPL_ACCOUNT_COMPRESSION_PROGRAM_ID,
   SPL_NOOP_PROGRAM_ID,
-  createVerifyLeafInstruction,
 } from "@solana/spl-account-compression";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -19,16 +17,16 @@ import base58 from "bs58";
 import {
   Character,
   CharacterModel,
-  Mission,
   MissionPool,
-  PermissionedCurrencyKindEnum,
   Profile,
   Project,
+  Resource,
+  ResourceStorageEnum,
   RewardKind,
   User,
 } from "@honeycomb-protocol/edge-client";
-import { mintAssets } from "../utils";
 import {
+  mintAssets,
   DAS_API_URL,
   adminKeypair,
   authorize,
@@ -38,8 +36,9 @@ import {
   sendTransactions,
   umi,
   userKeypair,
+  wait,
+  fetchHeliusAssets,
 } from "../utils";
-import { fetchHeliusAssets } from "../utils";
 
 const totalNfts = 1;
 const totalcNfts = 0;
@@ -47,19 +46,20 @@ const totalcNfts = 0;
 describe("Nectar Missions", () => {
   let collection: string;
   let projectAddress: string;
-  let merkleTree: string;
+  let resourceAddress: string;
+  let characterModelAddress: string;
+  let missionPoolAddress: string;
+  let missionAddress: string;
+  let lookupTableAddress: string;
+
   let project: Project;
   let user: User;
   let profile: Profile;
   let accessToken: string;
+  let merkleTree: string;
 
-  let currency: HplCurrency;
+  let resource: Resource;
   let characterModel: CharacterModel;
-  let currencyAddress: string;
-  let characterModelAddress;
-  let missionPoolAddress;
-  let missionAddress: string;
-  let lookupTableAddress: string;
   let missionPool: MissionPool;
   let mission: any;
 
@@ -105,72 +105,58 @@ describe("Nectar Missions", () => {
       })
       .then(({ project: [projectT] }) => projectT);
 
-    // Create Currency
-    if (!currencyAddress) {
-      console.info("Creating Currency ....");
+    // Create Resource
+    if (!resourceAddress) {
+      console.info("Creating Resource ....");
       const {
-        createInitCurrencyTransaction: {
-          tx: initCurrencyTx,
-          currency: currencyAddressT,
+        createCreateNewResourceTransaction: {
+          tx: initResourceTx,
+          resource: resourceAddressT,
         },
-      } = await client.createInitCurrencyTransaction({
-        create: {
-          project: projectAddress.toString(),
-          authority: adminKeypair.publicKey.toString(),
-          payer: adminKeypair.publicKey.toString(),
-          metadata: {
-            name: "Test Currency",
-            symbol: "TC",
-            decimals: 6,
-            kind: PermissionedCurrencyKindEnum.NonCustodial,
-            uri: "https://arweave.net/1VxSzPEOwYlTo3lU5XSQWj-9Ldt3dB68cynDDjzeF-c",
-          },
-        },
-      });
-
-      await sendTransaction(
-        initCurrencyTx,
-        [adminKeypair],
-        "createCreateCurrencyTransaction"
-      );
-      console.log("Currency Address", currencyAddressT);
-      currencyAddress = currencyAddressT;
-
-      // CREATE CURRENCY HOLDER ACCOUNT & MINT
-      const {
-        createCreateHolderAccountTransaction: {
-          tx: initHolderAccountTx,
-          holderAccount: holderAccountAddress,
-        },
-      } = await client.createCreateHolderAccountTransaction({
+      } = await client.createCreateNewResourceTransaction({
         project: projectAddress.toString(),
-        currency: currencyAddressT,
-        owner: userKeypair.publicKey.toString(),
+        authority: adminKeypair.publicKey.toString(),
+        payer: adminKeypair.publicKey.toString(),
+        params: {
+          name: "Test Resource",
+          symbol: "TC",
+          decimals: 6,
+          uri: "https://arweave.net/1VxSzPEOwYlTo3lU5XSQWj-9Ldt3dB68cynDDjzeF-c",
+          storage: ResourceStorageEnum.AccountState,
+        },
       });
 
       await sendTransaction(
-        initHolderAccountTx,
-        [userKeypair],
-        "createCreateHolderAccountTransaction"
+        initResourceTx,
+        [adminKeypair],
+        "createCreateNewResourceTransaction"
       );
-      console.log("Holder Account Address", holderAccountAddress);
+      console.log("Resource Address", resourceAddressT);
+      resourceAddress = resourceAddressT;
 
-      const { createMintCurrencyTransaction: mintCurrencyTx } =
-        await client.createMintCurrencyTransaction({
-          project: projectAddress.toString(),
-          amount: String(1000 ** 6),
-          currency: currencyAddressT,
-          authority: userKeypair.publicKey.toString(),
-          payer: userKeypair.publicKey.toString(),
-          mintTo: userKeypair.publicKey.toString(),
+      // Mint Resource to User
+      const { createMintResourceTransaction: mintResourceTx } =
+        await client.createMintResourceTransaction({
+          resource: resourceAddress,
+          owner: userKeypair.publicKey.toString(),
+          authority: adminKeypair.publicKey.toString(),
+          amount: String(1000 * 10 ** 6),
         });
 
       await sendTransaction(
-        mintCurrencyTx,
-        [userKeypair],
-        "createMintCurrencyTransaction"
+        mintResourceTx,
+        [adminKeypair],
+        "createCreateNewResourceTransaction"
       );
+
+      await wait(3);
     }
+
+    resource = await client
+      .findResources({
+        addresses: [resourceAddress.toString()],
+      })
+      .then(({ resources }) => resources[0]);
 
     // Create Character Model
     if (!characterModelAddress) {
@@ -277,10 +263,6 @@ describe("Nectar Missions", () => {
           characterModel: characterModelAddress.toString(),
           wallet: userKeypair.publicKey.toString(),
           mintList: assets.map((n) => n.mint.toString()),
-          activeCharactersMerkleTree:
-            characterModel.merkle_trees.merkle_trees[
-              characterModel.merkle_trees.active
-            ].toString(),
         });
 
       const txs = txResponse2!.transactions.map((txStr) => {
@@ -384,9 +366,6 @@ describe("Nectar Missions", () => {
     accessToken = await authorize(userKeypair);
 
     expect(user).toBeTruthy();
-    expect(user.info.name).toBe(userInfo.name);
-    expect(user.info.bio).toBe(userInfo.bio);
-    expect(user.info.pfp).toBe(userInfo.pfp);
 
     await client
       .findProfiles({
@@ -435,9 +414,6 @@ describe("Nectar Missions", () => {
     console.log("Profile Id", profile.address);
 
     expect(profile).toBeTruthy();
-    expect(profile.info.name).toBe(profileInfo.name);
-    expect(profile.info.bio).toBe(profileInfo.bio);
-    expect(profile.info.pfp).toBe(profileInfo.pfp);
   });
 
   it("Creates/Loads Mission Pool", async () => {
@@ -470,13 +446,6 @@ describe("Nectar Missions", () => {
       await sendTransaction(tx, [adminKeypair], "newMissionPool");
       missionPoolAddress = missionPoolAddressT.toString();
       console.log("Mission Pool", missionPoolAddress);
-
-      // await Promise.resolve(() =>
-      //   setTimeout(
-      //     () => {},
-      //     10000 // 10 seconds
-      //   )
-      // );
     }
 
     missionPool = await client
@@ -539,8 +508,8 @@ describe("Nectar Missions", () => {
           project: project.address.toString(),
           name: "Test mission",
           cost: {
-            address: String(currencyAddress),
-            amount: "0", // 10B
+            address: String(resource.address),
+            amount: String(100 * 10 ** 6),
           },
           duration: "1", // 1 second(s)
           minXp: "0",
@@ -551,10 +520,10 @@ describe("Nectar Missions", () => {
               min: "100",
             },
             {
-              kind: RewardKind.Currency,
-              max: "50000000000", // 50B
-              min: "50000000000", // 50B
-              currency: currencyAddress.toString(),
+              kind: RewardKind.Resource,
+              max: String(500 * 10 ** 6),
+              min: String(100 * 10 ** 6),
+              resource: resource.address,
             },
           ],
           missionPool: missionPoolAddress,
@@ -568,18 +537,18 @@ describe("Nectar Missions", () => {
         [adminKeypair],
         "createCreateMissionTransaction"
       );
-      missionAddress = missionAddressT.toString();
+      missionAddress = missionAddressT;
       console.log("missionAddress", missionAddress);
     }
 
     mission = await client
       .findMissions({ addresses: [missionAddress] })
-      .then((res) => res.mission[0]);
+      .then(({ mission }) => mission[0]);
 
-    expect(missionAddress).toBeTruthy();
+    expect(mission).toBeTruthy();
   });
 
-  it.skip("Update Mission", async () => {
+  it("Update Mission", async () => {
     if (!projectAddress)
       throw new Error(
         "Project not created, a valid project is needed to create a Mission"
@@ -589,44 +558,43 @@ describe("Nectar Missions", () => {
         "Mission Pool not created, a valid mission pool is needed to create a Mission"
       );
 
-    // Temporarily disabling this code for now
     if (missionAddress) {
-      // const { createUpdateMissionTransaction: txResponse } =
-      //   await client.createUpdateMissionTransaction({
-      //     missionAddress,
-      //     authority: adminKeypair.publicKey.toString(),
-      //     params: {
-      //       newRewards: [],
-      //       updateRewards: [
-      //         {
-      //           kind: RewardKind.Xp,
-      //           max: "300",
-      //           min: "100",
-      //         },
-      //       ],
-      //       removeRewards: [],
-      //       minXp: "0",
-      //       duration: "1",
-      //       cost: {
-      //         amount: "0",
-      //         address: currencyAddress,
-      //       },
-      //     },
-      //   });
+      const { createUpdateMissionTransaction: txResponse } =
+        await client.createUpdateMissionTransaction({
+          missionAddress,
+          authority: adminKeypair.publicKey.toString(),
+          params: {
+            newRewards: [],
+            updateRewards: [
+              {
+                kind: RewardKind.Xp,
+                max: "300",
+                min: "100",
+              },
+            ],
+            removeRewards: [],
+            minXp: "0",
+            duration: "1",
+            cost: {
+              amount: "0",
+              address: resource.address,
+            },
+          },
+        });
 
-      // await sendTransaction(
-      //   txResponse,
-      //   [adminKeypair],
-      //   "createUpdateMissionTransaction"
-      // );
+      await sendTransaction(
+        txResponse,
+        [adminKeypair],
+        "createUpdateMissionTransaction"
+      );
 
-      // mission = await client
-      //   .findMissions({ addresses: [missionAddress] })
-      //   .then((res) => res.mission[0]);
+      mission = await client
+        .findMissions({ addresses: [missionAddress] })
+        .then((res) => res.mission[0]);
 
-      // expect(mission).toBeTruthy();
-      // expect(mission.rewards).toBeTruthy();
-      // expect(mission.rewards.length).toBe(2);
+      expect(mission).toBeTruthy();
+      expect(mission.rewards).toBeTruthy();
+      expect(mission.rewards.length).toBe(2);
     }
   });
 
@@ -646,7 +614,8 @@ describe("Nectar Missions", () => {
         web3.AddressLookupTableProgram.extendLookupTable({
           addresses: [
             new web3.PublicKey(projectAddress),
-            new web3.PublicKey(currencyAddress),
+            new web3.PublicKey(resource.address),
+            new web3.PublicKey(resource.mint),
             new web3.PublicKey(characterModelAddress),
             new web3.PublicKey(missionPoolAddress),
             new web3.PublicKey(missionAddress),

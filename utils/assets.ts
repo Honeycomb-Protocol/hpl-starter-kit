@@ -2,8 +2,8 @@ import { createCollection, createV1 } from "@metaplex-foundation/mpl-core";
 import {
   createNft,
   createProgrammableNft,
-  verifyCollectionV1,
   findMetadataPda,
+  verifyCollectionV1,
 } from "@metaplex-foundation/mpl-token-metadata";
 import {
   generateSigner,
@@ -15,19 +15,21 @@ import {
   Umi,
 } from "@metaplex-foundation/umi";
 import * as web3 from "@solana/web3.js";
+import { adminKeypair as adminKP, errorLog, userKeypair } from ".";
+import { create2022Group, mintOne2022Nft } from ".";
 import {
   Asset,
   createNewTree,
   fetchHeliusAssets,
   mintOneCNFT,
 } from ".";
-import { log, errorLog, adminKeypair as adminKP } from ".";
 
 export interface CollectionWithItems<Mint = PublicKey, Pubkey = PublicKey> {
   group: Pubkey;
   mints: Mint[];
-  asset: "MPL_CORE" | "MPL_TM" | "MPL_BG";
+  asset: "MPL_CORE" | "MPL_TM" | "MPL_BG" | "TOKEN_2022";
 }
+
 export const mintMplCoreCollection = async (
   umi: Umi,
   itemCount: number | undefined = undefined,
@@ -60,7 +62,6 @@ export const mintMplCoreCollection = async (
       uri: "https://example.com/my-collection.json",
     }).sendAndConfirm(umi, options);
     collectionWithMints.group = collectionSigner.publicKey;
-    log("collection address mpl Core", collectionWithMints.group);
   }
 
   for (let i in assetSigners) {
@@ -109,14 +110,13 @@ export const mintMplTMCollection = async (
     }).sendAndConfirm(umi, options);
 
     collectionWithMints.group = collectionSigner.publicKey;
-    log("collection address TM Core", collectionWithMints.group);
   }
 
   for (let i in assetSigners) {
     await createProgrammableNft(umi, {
       mint: assetSigners[i],
       uri: "https://arweave.net/WhyRt90kgI7f0EG9GPfB8TIBTIBgX3X12QaF9ObFerE",
-      name: `Test Nft Mpl Core ${i}`,
+      name: `Test Nft Mpl TM ${i}`,
       collection: some({
         key: collectionWithMints.group,
         verified: false,
@@ -167,8 +167,6 @@ export const mintMplBGCollection = async (
     collectionWithMints.group = publicKey(
       (await createNewTree(connection, adminKeypair))[0].toString()
     );
-
-    log("collection address BG Tree", collectionWithMints.group);
   }
 
   for (let i = 0; i < itemCount; i++) {
@@ -189,15 +187,83 @@ export const mintMplBGCollection = async (
   ).filter((m) => m.compression);
   return collectionWithMints;
 };
+
+export const mintToken2022Collection = async (
+  connection: web3.Connection,
+  adminKeypair: web3.Keypair,
+  itemCount: number | undefined = undefined,
+  beneficiery: web3.PublicKey = userKeypair.publicKey,
+  group?: {
+    groupAddress: web3.PublicKey;
+    updateAuthority: web3.Signer;
+  },
+  options: TransactionBuilderSendAndConfirmOptions = {
+    confirm: {
+      commitment: "finalized",
+    },
+  }
+) => {
+  if (!itemCount) return undefined;
+
+  if (!group) {
+    const { mint } = await create2022Group(
+      {
+        name: "Extensions Group",
+        symbol: "Extensions",
+        uri: "https://example.com/my-collection.json",
+        maxSize: itemCount,
+      },
+      connection,
+      adminKeypair.publicKey,
+      adminKeypair,
+      adminKeypair,
+      undefined,
+      options
+    );
+    group = {
+      groupAddress: mint.publicKey,
+      updateAuthority: adminKeypair,
+    };
+  }
+
+  const collectionWithMints: CollectionWithItems<web3.PublicKey> = {
+    group: group.groupAddress.toString() as any,
+    mints: [],
+    asset: "TOKEN_2022",
+  };
+
+  for (let i = 0; i < itemCount; i++) {
+    const { mint } = await mintOne2022Nft(
+      {
+        name: `Extensions #${i}`,
+        symbol: "Extensions",
+        uri: "https://arweave.net/WhyRt90kgI7f0EG9GPfB8TIBTIBgX3X12QaF9ObFerE",
+      },
+      connection,
+      beneficiery,
+      adminKeypair,
+      adminKeypair,
+      undefined,
+      group,
+      options
+    );
+    collectionWithMints.mints.push(mint.publicKey);
+  }
+
+  return collectionWithMints;
+};
+
 export type AssetCounts = {
   core?: number;
   pnfts?: number;
   cnfts?: number;
+  token22?: number;
 };
 export type AssetResponse = {
   core?: CollectionWithItems;
   pnfts?: CollectionWithItems;
   cnfts?: CollectionWithItems<Asset>;
+  token22?: CollectionWithItems<web3.PublicKey>;
 };
 export const mintAssets = async (
   umi: Umi,
@@ -222,7 +288,7 @@ export const mintAssets = async (
     errorLog(err);
     return undefined;
   };
-  [response.core, response.pnfts] = await Promise.all([
+  [response.core, response.pnfts, response.token22] = await Promise.all([
     mintMplCoreCollection(
       umi,
       count.core,
@@ -235,6 +301,14 @@ export const mintAssets = async (
       count.pnfts,
       beneficiery,
       collection,
+      options
+    ).catch(resistError),
+    mintToken2022Collection(
+      connection,
+      adminKeypair,
+      count.token22,
+      new web3.PublicKey(beneficiery),
+      undefined,
       options
     ).catch(resistError),
   ]);

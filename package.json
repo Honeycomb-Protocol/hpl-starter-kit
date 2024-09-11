@@ -3,9 +3,10 @@
     "test": "jest"
   },
   "dependencies": {
+    "@coral-xyz/anchor": "0.28.0",
     "@honeycomb-protocol/character-manager": "^0.0.2-beta.21",
     "@honeycomb-protocol/currency-manager": "^0.0.84-beta.2",
-    "@honeycomb-protocol/edge-client": "^0.0.6",
+    "@honeycomb-protocol/edge-client": "^0.0.7-beta.1",
     "@honeycomb-protocol/hive-control": "^0.2.19-beta.18",
     "@honeycomb-protocol/nectar-missions": "^0.1.45-beta.29",
     "@honeycomb-protocol/resource-manager": "^0.0.2-beta.26",
@@ -16,6 +17,9 @@
     "@metaplex-foundation/umi": "^0.9.1",
     "@metaplex-foundation/umi-bundle-defaults": "^0.9.2",
     "@solana/spl-account-compression": "^0.2.1",
+    "@solana/spl-token": "^0.4.8",
+    "@solana/spl-token-group": "^0.0.6",
+    "@solana/spl-token-metadata": "^0.1.5",
     "@solana/web3.js": "^1.89.1",
     "bs58": "^6.0.0"
   },

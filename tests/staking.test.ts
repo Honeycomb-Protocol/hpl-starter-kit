@@ -1,48 +1,47 @@
 import * as web3 from "@solana/web3.js";
 import base58 from "bs58";
-import {
-  AddMultiplierMetadataInput,
-  CharacterModel,
-  LockTypeEnum,
-  PermissionedCurrencyKindEnum,
-} from "@honeycomb-protocol/edge-client";
+import { HPL_CHARACTER_MANAGER_PROGRAM } from "@honeycomb-protocol/character-manager";
 import {
   HPL_HIVE_CONTROL_PROGRAM,
   VAULT,
 } from "@honeycomb-protocol/hive-control";
-import { HPL_CHARACTER_MANAGER_PROGRAM } from "@honeycomb-protocol/character-manager";
-import { HPL_CURRENCY_MANAGER_PROGRAM } from "@honeycomb-protocol/currency-manager";
 import {
   SPL_ACCOUNT_COMPRESSION_PROGRAM_ID,
   SPL_NOOP_PROGRAM_ID,
 } from "@solana/spl-account-compression";
 import {
+  AddMultiplierMetadataInput,
+  CharacterModel,
+  LockTypeEnum,
+  ResourceStorageEnum,
+} from "@honeycomb-protocol/edge-client";
+import {
   DAS_API_URL,
   adminKeypair,
   client,
   connection,
+  log,
   sendTransaction,
   sendTransactions,
   umi,
   userKeypair,
-  log,
+  wait,
   mintAssets,
   fetchHeliusAssets,
 } from "../utils";
 
 const totalNfts = 1;
 const totalcNfts = 0;
-
 describe("Test Nectar Staking Txs", () => {
   let collection: web3.PublicKey;
   let merkleTree: web3.PublicKey;
   let projectAddress: string;
-  let currencyAddress: string;
-  let stakingPoolAddress: string;
+  let resourceAddress: string;
   let characterModelAddress: string;
-  let characterModel: CharacterModel;
+  let stakingPoolAddress: string;
   let multipliersAddress: string;
   let lookupTableAddress: string;
+  let characterModel: CharacterModel;
 
   beforeAll(async () => {
     const mintedAssets = await mintAssets(
@@ -83,20 +82,18 @@ describe("Test Nectar Staking Txs", () => {
     log("Project", projectAddress);
 
     // Create Currency
-    if (!currencyAddress) {
+    if (!resourceAddress) {
       const {
-        createInitCurrencyTransaction: { currency: currencyAddressT, tx },
-      } = await client.createInitCurrencyTransaction({
-        create: {
-          authority: adminKeypair.publicKey.toString(),
-          project: projectAddress,
-          metadata: {
-            decimals: 9,
-            name: "Test Currency",
-            symbol: "TST",
-            uri: "https://qgp7lco5ylyitscysc2c7clhpxipw6sexpc2eij7g5rq3pnkcx2q.arweave.net/gZ_1id3C8InIWJC0L4lnfdD7ekS7xaIhPzdjDb2qFfU",
-            kind: PermissionedCurrencyKindEnum.Custodial,
-          },
+        createCreateNewResourceTransaction: { resource: resourceAddressT, tx },
+      } = await client.createCreateNewResourceTransaction({
+        authority: adminKeypair.publicKey.toString(),
+        project: projectAddress,
+        params: {
+          decimals: 9,
+          name: "Test Resource",
+          symbol: "TST",
+          uri: "https://qgp7lco5ylyitscysc2c7clhpxipw6sexpc2eij7g5rq3pnkcx2q.arweave.net/gZ_1id3C8InIWJC0L4lnfdD7ekS7xaIhPzdjDb2qFfU",
+          storage: ResourceStorageEnum.AccountState,
         },
       });
 
@@ -105,35 +102,9 @@ describe("Test Nectar Staking Txs", () => {
         [adminKeypair],
         "createInitCurrencyTransaction"
       );
-      currencyAddress = currencyAddressT;
+      resourceAddress = resourceAddressT;
     }
-    log("Currency", currencyAddress);
-
-    // Create Holder Account
-    const holderAccountFetched = await client
-      .findHolderAccounts({
-        owners: [userKeypair.publicKey.toString()],
-        currencies: [currencyAddress],
-      })
-      .then((e) => e.holderAccounts[0]);
-
-    if (!holderAccountFetched) {
-      const {
-        createCreateHolderAccountTransaction: { holderAccount, tx },
-      } = await client.createCreateHolderAccountTransaction({
-        project: projectAddress,
-        currency: currencyAddress,
-        owner: userKeypair.publicKey.toString(),
-        payer: userKeypair.publicKey.toString(),
-      });
-
-      await sendTransaction(
-        tx,
-        [userKeypair],
-        "createCreateHolderAccountTransaction"
-      );
-      log("holderAccount", holderAccount);
-    }
+    log("Resource", resourceAddress);
 
     // Create Character Model
     if (!characterModelAddress) {
@@ -229,10 +200,6 @@ describe("Test Nectar Staking Txs", () => {
         await client.createWrapAssetsToCharacterTransactions({
           project: projectAddress,
           characterModel: characterModelAddress.toString(),
-          activeCharactersMerkleTree:
-            characterModel.merkle_trees.merkle_trees[
-              characterModel.merkle_trees.active
-            ].toString(),
           wallet: userKeypair.publicKey.toString(),
           mintList: assets.map((n) => n.mint.toString()),
         });
@@ -247,7 +214,7 @@ describe("Test Nectar Staking Txs", () => {
 
   it("Create/Load Staking Pool", async () => {
     if (!projectAddress) throw new Error("Project not created");
-    if (!currencyAddress) throw new Error("Currency not created");
+    if (!resourceAddress) throw new Error("Currency not created");
 
     if (!stakingPoolAddress) {
       const {
@@ -257,7 +224,7 @@ describe("Test Nectar Staking Txs", () => {
         },
       } = await client.createCreateStakingPoolTransaction({
         project: projectAddress,
-        currency: currencyAddress,
+        resource: resourceAddress,
         authority: adminKeypair.publicKey.toString(),
         metadata: {
           name: "Staking",
@@ -446,11 +413,14 @@ describe("Test Nectar Staking Txs", () => {
       "createStakeCharactersTransactions"
     );
 
+    await wait(30);
+
     const { character: characterRefetch } = await client.findCharacters({
-      addresses: character.map((x) => x!.address),
+      trees: characterModel.merkle_trees.merkle_trees,
     });
     expect(characterRefetch.length).toBe(character.length);
     characterRefetch.forEach((x) => {
+      console.log(x.address, "Character Address");
       expect(x.usedBy.kind).toBe("Staking");
     });
   });
@@ -472,11 +442,10 @@ describe("Test Nectar Staking Txs", () => {
             new web3.PublicKey(projectAddress),
             new web3.PublicKey(characterModelAddress),
             new web3.PublicKey(stakingPoolAddress),
-            new web3.PublicKey(currencyAddress),
+            new web3.PublicKey(resourceAddress),
             VAULT,
             HPL_HIVE_CONTROL_PROGRAM,
             HPL_CHARACTER_MANAGER_PROGRAM,
-            HPL_CURRENCY_MANAGER_PROGRAM,
             web3.SYSVAR_CLOCK_PUBKEY,
             web3.SYSVAR_INSTRUCTIONS_PUBKEY,
             SPL_ACCOUNT_COMPRESSION_PROGRAM_ID,
