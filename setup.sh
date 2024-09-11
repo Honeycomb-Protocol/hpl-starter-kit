@@ -89,12 +89,12 @@ generate_keypair "keys/admin.json"
 echo "Generating user keypair..."
 generate_keypair "keys/user.json"
 
-echo "Airdropping 100 SOL to admin..."
+echo "Airdropping SOL to admin..."
 solana airdrop 1000 --url $RPC_URL -k ./keys/admin.json
-echo "100 Honeynet SOL airdropped to admin."
+echo "Honeynet SOL airdropped to admin."
 
-echo "Airdropping 100 SOL to user..."
+echo "Airdropping SOL to user..."
 solana airdrop 1000 --url $RPC_URL -k ./keys/user.json
-echo "100 Honeynet SOL airdropped to user."
+echo "Honeynet SOL airdropped to user."
 
 echo "Script completed. Happy testing!"
