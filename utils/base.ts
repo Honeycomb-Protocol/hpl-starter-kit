@@ -68,9 +68,9 @@ export const libreplexFairLaunchProgram = createLibreplexProgram(
   adminKeypair
 );
 
-export const log = process.env.NO_LOG == "true" ? () => {} : console.log;
-export const errorLog = process.env.NO_LOG == "true" ? () => {} : console.error;
-export const dirLog = process.env.NO_LOG == "true" ? () => {} : console.dir;
+export const log = process.env.DEBUG_LOGS == "true" ? console.log : () => {};
+export const errorLog = process.env.ERROR_LOGS == "true" ? console.error : () => {};
+export const dirLog = process.env.DEBUG_LOGS == "true" ? console.dir : () => {} ;
 export const sendTransaction = async (
   txResponse: Transaction,
   signers: web3.Keypair[],

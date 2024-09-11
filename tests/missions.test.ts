@@ -38,12 +38,13 @@ import {
   userKeypair,
   wait,
   fetchHeliusAssets,
+  log,
 } from "../utils";
 
-const totalNfts = 1;
-const totalcNfts = 0;
+const totalNfts = 3;
+const totalcNfts = 2;
 
-describe.skip("Nectar Missions", () => {
+describe("Nectar Missions", () => {
   let collection: string;
   let projectAddress: string;
   let resourceAddress: string;
@@ -77,7 +78,7 @@ describe.skip("Nectar Missions", () => {
 
     // Create Project
     if (!projectAddress) {
-      console.info("Creating Project ....");
+      log("Creating Project ....");
       const {
         createCreateProjectTransaction: {
           tx: txResponse,
@@ -95,7 +96,7 @@ describe.skip("Nectar Missions", () => {
         "createCreateProjectTransaction"
       );
 
-      console.log("Project Address", projectAddressT);
+      log("Project Address", projectAddressT);
       projectAddress = projectAddressT;
     }
 
@@ -107,7 +108,7 @@ describe.skip("Nectar Missions", () => {
 
     // Create Resource
     if (!resourceAddress) {
-      console.info("Creating Resource ....");
+      log("Creating Resource ....");
       const {
         createCreateNewResourceTransaction: {
           tx: initResourceTx,
@@ -131,7 +132,7 @@ describe.skip("Nectar Missions", () => {
         [adminKeypair],
         "createCreateNewResourceTransaction"
       );
-      console.log("Resource Address", resourceAddressT);
+      log("Resource Address", resourceAddressT);
       resourceAddress = resourceAddressT;
 
       // Mint Resource to User
@@ -208,7 +209,7 @@ describe.skip("Nectar Missions", () => {
       })
       .then((res) => res.characterModel[0]);
 
-    console.log("Character Model", characterModelAddress.toString());
+    log("Character Model", characterModelAddress.toString());
 
     // Create Characters Tree
     if (
@@ -216,7 +217,7 @@ describe.skip("Nectar Missions", () => {
         characterModel.merkle_trees.active
       ]
     ) {
-      console.log("Creating Characters Tree");
+      log("Creating Characters Tree");
       const { createCreateCharactersTreeTransaction: txResponse } =
         await client.createCreateCharactersTreeTransaction({
           treeConfig: {
@@ -250,13 +251,13 @@ describe.skip("Nectar Missions", () => {
         collectionAddress: new web3.PublicKey(collection),
       }).then((assets) => assets.filter((n) => !n.frozen).slice(0, 5));
 
-      console.log(
+      log(
         "Assets",
         assets.map((n) => n.mint.toString())
       );
       if (!assets.length) throw new Error("No Assets to wrap");
 
-      console.log("Warping Character Models");
+      log("Wrapping NFTs to Character Models");
       const { createWrapAssetsToCharacterTransactions: txResponse2 } =
         await client.createWrapAssetsToCharacterTransactions({
           project: projectAddress.toString(),
@@ -294,7 +295,7 @@ describe.skip("Nectar Missions", () => {
 
     // creating profile tree if not exists
     if (!project.profileTrees.merkle_trees[project.profileTrees.active]) {
-      console.log("Creating Profile Tree");
+      log("Creating Profile Tree");
       const {
         createCreateProfilesTreeTransaction: {
           tx: txResponse,
@@ -318,7 +319,7 @@ describe.skip("Nectar Missions", () => {
         "createCreateProfilesTreeTransaction"
       );
 
-      console.log("Profile Tree", profilesTreeAddress.toString());
+      log("Profile Tree", profilesTreeAddress.toString());
       await client
         .findProjects({
           addresses: [project.address],
@@ -330,12 +331,7 @@ describe.skip("Nectar Missions", () => {
       project.profileTrees.merkle_trees[project.profileTrees.active]
     ).toBeTruthy();
 
-    await Promise.resolve(
-      setTimeout(
-        () => {},
-        3000 // 3 seconds
-      )
-    );
+    await wait(3);
 
     await client
       .findUsers({
@@ -379,7 +375,7 @@ describe.skip("Nectar Missions", () => {
       });
 
     if (!profile) {
-      console.log("Creating Profile");
+      log("Creating Profile");
       const { createNewProfileTransaction: txResponse } =
         await client.createNewProfileTransaction(
           {
@@ -411,7 +407,7 @@ describe.skip("Nectar Missions", () => {
         .then(({ profile: [profileT] }) => (profile = profileT));
     }
 
-    console.log("Profile Id", profile.address);
+    log("Profile Id", profile.address);
 
     expect(profile).toBeTruthy();
   });
@@ -445,7 +441,7 @@ describe.skip("Nectar Missions", () => {
 
       await sendTransaction(tx, [adminKeypair], "newMissionPool");
       missionPoolAddress = missionPoolAddressT.toString();
-      console.log("Mission Pool", missionPoolAddress);
+      log("Mission Pool", missionPoolAddress);
     }
 
     missionPool = await client
@@ -538,7 +534,7 @@ describe.skip("Nectar Missions", () => {
         "createCreateMissionTransaction"
       );
       missionAddress = missionAddressT;
-      console.log("missionAddress", missionAddress);
+      log("missionAddress", missionAddress);
     }
 
     mission = await client
@@ -659,7 +655,7 @@ describe.skip("Nectar Missions", () => {
         "Create Lookup Table"
       );
 
-      console.log("Lookup Table Address", lookupTableAddressPub.toString());
+      log("Lookup Table Address", lookupTableAddressPub.toString());
       lookupTableAddress = lookupTableAddressPub.toString();
     }
 
@@ -683,17 +679,17 @@ describe.skip("Nectar Missions", () => {
     });
     characterOnMission.push(characters[0]);
 
-    console.log("Character", characterOnMission[0].address, "Participating");
+    log("Character", characterOnMission[0].address, "Participating");
     if (
       characterOnMission.every(
         (character) => character.usedBy.kind === "Mission"
       )
     ) {
-      console.log("Characters already on mission");
+      log("Characters already on mission");
       return;
     }
 
-    console.log("Character", characterOnMission[0].address, "Participating");
+    log("Character", characterOnMission[0].address, "Participating");
     const {
       createSendCharactersOnMissionTransaction: {
         blockhash,
@@ -721,7 +717,7 @@ describe.skip("Nectar Missions", () => {
       );
     }
 
-    await Promise.resolve(() => setTimeout(() => {}, 1000));
+    await wait();
     characterOnMission.forEach(async (character) => {
       await client
         .findCharacters({
@@ -745,8 +741,8 @@ describe.skip("Nectar Missions", () => {
       );
 
     // Wait for mission's end
-    console.log("Waiting for mission to end (Collect Rewards Scenario)");
-    await new Promise((resolve) => setTimeout(resolve, 15000));
+    log("Waiting for mission to end (Collect Rewards Scenario)");
+    await wait(15);
 
     const {
       createRecallCharactersTransaction: {
@@ -773,10 +769,6 @@ describe.skip("Nectar Missions", () => {
         [userKeypair],
         "createRecallCharactersTransaction0 (Collect + Recall)"
       );
-
-      await Promise.resolve(() => setTimeout(() => {}, 5000));
     }
   });
 });
-
-console.log("Mission tests are not functional yet. They will be soon!");

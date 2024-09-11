@@ -33,7 +33,7 @@ import {
 const totalNfts = 1;
 const totalcNfts = 0;
 
-describe.skip("Test Nectar Staking Txs", () => {
+describe("Test Nectar Staking Txs", () => {
   let collection: web3.PublicKey;
   let merkleTree: web3.PublicKey;
   let projectAddress: string;
@@ -421,7 +421,7 @@ describe.skip("Test Nectar Staking Txs", () => {
     });
     expect(characterRefetch.length).toBe(character.length);
     characterRefetch.forEach((x) => {
-      console.log(x.address, "Character Address");
+      log(x.address, "Character Address");
       expect(x.usedBy.kind).toBe("Staking");
     });
   });
@@ -487,6 +487,9 @@ describe.skip("Test Nectar Staking Txs", () => {
   });
 
   it("UnStake Character", async () => {
+    log("Waiting before unstaking");
+    await wait(3);
+
     const { character } = await client.findCharacters({
       filters: {
         owner: userKeypair.publicKey.toString(),
@@ -521,5 +524,3 @@ describe.skip("Test Nectar Staking Txs", () => {
     });
   });
 });
-
-console.log("Staking tests are not functional yet. They will be soon!");

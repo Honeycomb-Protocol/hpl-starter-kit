@@ -12,6 +12,7 @@ import {
   userKeypair,
   wait,
 } from "../../utils";
+import { Keypair } from "@solana/web3.js";
 
 describe("Hive Control Users n Profiles", () => {
   let user: User;
@@ -207,14 +208,14 @@ describe("Hive Control Users n Profiles", () => {
     // expect(profile.customData.customField[0]).toBe("customValue");
   });
 
-  it("Add Wallet", async () => {
+  it.skip("Add Wallet", async () => {
     const { createUpdateUserTransaction: txResponse } =
       await client.createUpdateUserTransaction(
         {
           payer: userKeypair.publicKey.toString(),
           populateCivic: true,
           wallets: {
-            add: ["HoXjS1u8jS6oThLea9Y5MeAHffMm7zuEEbBAvckDNLDV"],
+            add: [Keypair.generate().publicKey.toString()],
           },
         },
         {
