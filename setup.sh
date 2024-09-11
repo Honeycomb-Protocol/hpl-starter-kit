@@ -37,13 +37,15 @@ install_deps() {
 add_env_variable() {
     VAR_NAME=$1
     VAR_VALUE=$2
+
     if ! grep -q "^${VAR_NAME}=" "$ENV_FILE"; then
         echo "Adding ${VAR_NAME} to .env..."
-        echo "${VAR_NAME}=\"${VAR_VALUE}\"" >> "$ENV_FILE"
+        echo "${VAR_NAME}=${VAR_VALUE}" >> "$ENV_FILE"
     else
         echo "${VAR_NAME} already exists in .env."
     fi
 }
+
 
 generate_keypair() {
     local key_file=$1
@@ -66,9 +68,11 @@ if [ ! -f "$ENV_FILE" ]; then
 else
     echo ".env file already exists. Checking if the required variables are present..."
 fi
-add_env_variable "API_URL" "https://edge.test.honeycombprotocol.com/"
-add_env_variable "RPC_URL" "https://rpc.test.honeycombprotocol.com/"
-add_env_variable "DAS_API_URL" "https://edge.test.honeycombprotocol.com/"
+add_env_variable "API_URL" \"https://edge.test.honeycombprotocol.com/\"
+add_env_variable "RPC_URL" \"https://rpc.test.honeycombprotocol.com/\"
+add_env_variable "DAS_API_URL" \"https://edge.test.honeycombprotocol.com/\"
+add_env_variable "DEBUG_LOGS" true
+add_env_variable "ERROR_LOGS" true
 
 export $(grep -v '^#' "$ENV_FILE" | xargs)
 
