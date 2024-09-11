@@ -70,8 +70,8 @@ else
 fi
 add_env_variable "API_URL" \"https://edge.test.honeycombprotocol.com/\"
 add_env_variable "RPC_URL" \"https://rpc.test.honeycombprotocol.com/\"
-add_env_variable "DAS_API_URL" \"https://edge.test.honeycombprotocol.com/\"
-add_env_variable "DEBUG_LOGS" true
+add_env_variable "DAS_API_URL" \"https://rpc.test.honeycombprotocol.com/\"
+add_env_variable "DEBUG_LOGS" false
 add_env_variable "ERROR_LOGS" true
 
 export $(grep -v '^#' "$ENV_FILE" | xargs)
@@ -90,11 +90,11 @@ echo "Generating user keypair..."
 generate_keypair "keys/user.json"
 
 echo "Airdropping 100 SOL to admin..."
-solana airdrop 100 --url $RPC_URL -k ./keys/admin.json
+solana airdrop 1000 --url $RPC_URL -k ./keys/admin.json
 echo "100 Honeynet SOL airdropped to admin."
 
 echo "Airdropping 100 SOL to user..."
-solana airdrop 100 --url $RPC_URL -k ./keys/user.json
+solana airdrop 1000 --url $RPC_URL -k ./keys/user.json
 echo "100 Honeynet SOL airdropped to user."
 
 echo "Script completed. Happy testing!"

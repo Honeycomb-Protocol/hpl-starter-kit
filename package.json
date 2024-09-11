@@ -38,11 +38,10 @@
     "testMatch": [
       "**/*.test.ts"
     ],
-    "globals": {
-      "ts-jest": {
-        "testRegext": "*.test.ts",
-        "verbose": true
-      }
+    "transform": {
+      "^.+\\.test.ts?$": ["ts-jest", {
+        "tsConfig": "tsconfig.json"
+      }]
     }
   }
 }

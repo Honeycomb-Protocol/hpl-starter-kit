@@ -1,3 +1,5 @@
+console.warn = () => {}; // Suppresses console.warn from web3.js
+
 import {
     HPL_HIVE_CONTROL_PROGRAM,
     METADATA_PROGRAM_ID,
@@ -71,14 +73,9 @@ import {
   
     beforeAll(async () => {
       if (!projectAddress) {
-        project = await createProject(
-          undefined,
-          undefined,
-          undefined,
-          true,
-          true,
-          false
-        );
+        project = await createProject({
+          createBadgingCriteria: false,
+        });
   
         log("created project", project.address);
         projectAddress = project.address;
@@ -523,8 +520,7 @@ import {
         await sendTransaction(
           tx,
           [userKeypair],
-          "createTransferResourceTransaction" + resource.address,
-          true
+          "createTransferResourceTransaction" + resource.address
         );
       }
   
@@ -635,6 +631,8 @@ import {
     it("cooking process", async () => {
       if (!recipe) throw new Error(`Recipe not created`);
   
+      await wait(3);
+
       const {
         createInitCookingProcessTransactions: {
           transactions,

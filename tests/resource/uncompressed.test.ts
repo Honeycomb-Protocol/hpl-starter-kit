@@ -1,3 +1,5 @@
+console.warn = () => {}; // Suppresses console.warn from web3.js
+
 import {
     HPL_HIVE_CONTROL_PROGRAM,
     METADATA_PROGRAM_ID,
@@ -83,14 +85,9 @@ describe("resource fungible token account state", () => {
 
     beforeAll(async () => {
         if (!projectAddress) {
-            project = await createProject(
-                undefined,
-                undefined,
-                undefined,
-                true,
-                true,
-                false
-            );
+            project = await createProject({
+                createBadgingCriteria: false,
+            });
 
             log("created project", project.address);
             projectAddress = project.address;
@@ -300,7 +297,6 @@ describe("resource fungible token account state", () => {
                 tx,
                 [userKeypair],
                 "createTransferResourceTransaction" + resource.address,
-                true
             );
         }
     });

@@ -1,3 +1,5 @@
+console.warn = () => {}; // Suppresses console.warn from web3.js
+
 import * as web3 from "@solana/web3.js";
 import base58 from "bs58";
 import { HPL_CHARACTER_MANAGER_PROGRAM } from "@honeycomb-protocol/character-manager";
@@ -514,6 +516,8 @@ describe("Test Nectar Staking Txs", () => {
       [userKeypair],
       "createUnstakeCharactersTransactions"
     );
+    
+    await wait(3);
 
     const { character: characterRefetch } = await client.findCharacters({
       addresses: character.map((x) => x!.address),

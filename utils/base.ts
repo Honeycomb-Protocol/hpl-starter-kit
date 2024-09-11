@@ -91,7 +91,7 @@ export const sendTransaction = async (
     }
   );
   if (logOnSuccess || response.status !== "Success") {
-    log(action, response.status, response.signature, response.error);
+    errorLog(action, response.status, response.signature, response.error);
   }
   expect(response.status).toBe("Success");
   return response;
@@ -128,7 +128,7 @@ export const sendTransactions = async (
     },
     (response) => {
       if (response.status !== "Success") {
-        log(action, response.signature, response.error);
+        errorLog(action, response.signature, response.error);
       }
       expect(response.status).toBe("Success");
     }
@@ -150,14 +150,21 @@ export function makeid(length) {
   return result;
 }
 
-export async function createProject(
+export async function createProject({
   name = "Test Project",
+  profilesTreeCapacity = 100,
   authority = adminKeypair.publicKey.toString(),
   payer = adminKeypair.publicKey.toString(),
   subsidizeFees = true,
-  createProfilesTree = true,
   createBadgingCriteria = true
-) {
+}: {
+  name?: string;
+  profilesTreeCapacity?: number;
+  authority?: string;
+  payer?: string;
+  subsidizeFees?: boolean;
+  createBadgingCriteria?: boolean;
+} = {}) {
   const {
     createCreateProjectTransaction: { project: projectAddress, tx: txResponse },
   } = await client.createCreateProjectTransaction({
@@ -204,16 +211,19 @@ export async function createProject(
     );
   }
 
-  if (createProfilesTree) {
+  if (profilesTreeCapacity) {
     const {
       createCreateProfilesTreeTransaction: { tx: txResponse },
     } = await client.createCreateProfilesTreeTransaction({
       treeConfig: {
-        advanced: {
-          maxDepth: 3,
-          maxBufferSize: 8,
-          canopyDepth: 3,
+        basic: {
+          numAssets: profilesTreeCapacity,
         },
+        // advanced: {
+        //   maxDepth: 3,
+        //   maxBufferSize: 8,
+        //   canopyDepth: 3,
+        // },
       },
       project: project.address,
       payer: adminKeypair.publicKey.toString(),

@@ -1,3 +1,5 @@
+console.warn = () => {}; // Suppresses console.warn from web3.js
+
 import {
   BadgesCondition,
   Profile,
@@ -35,40 +37,6 @@ describe("Hive Control Users n Profiles", () => {
 
   beforeAll(async () => {
     project = await createProject();
-  });
-
-  it.skip("Creates/Loads User", async () => {
-    userInfo.username = userKeypair.publicKey.toString();
-    await client
-      .findUsers({
-        wallets: [userKeypair.publicKey.toString()],
-      })
-      .then(({ user: [userT] }) => (user = userT));
-
-    if (!user) {
-      const { createNewUserTransaction: txResponse } =
-        await client.createNewUserTransaction({
-          info: userInfo,
-          wallet: userKeypair.publicKey.toString(),
-        });
-
-      await sendTransaction(
-        txResponse,
-        [userKeypair],
-        "createNewUserTransaction"
-      );
-
-      await wait();
-
-      await client
-        .findUsers({
-          wallets: [userKeypair.publicKey.toString()],
-        })
-        .then(({ user: [userT] }) => (user = userT));
-    }
-
-    expect(user).toBeTruthy();
-    accessToken = await authorize(userKeypair);
   });
 
   it("Creates/Loads User with Profile", async () => {
@@ -208,7 +176,7 @@ describe("Hive Control Users n Profiles", () => {
     // expect(profile.customData.customField[0]).toBe("customValue");
   });
 
-  it.skip("Add Wallet", async () => {
+  it("Add Wallet", async () => {
     const { createUpdateUserTransaction: txResponse } =
       await client.createUpdateUserTransaction(
         {

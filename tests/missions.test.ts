@@ -1,3 +1,5 @@
+console.warn = () => {}; // Suppresses console.warn from web3.js
+
 import {
   HPL_HIVE_CONTROL_PROGRAM,
   METADATA_PROGRAM_ID,
