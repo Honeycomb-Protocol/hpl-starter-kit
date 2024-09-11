@@ -40,7 +40,7 @@
     ],
     "transform": {
       "^.+\\.test.ts?$": ["ts-jest", {
-        "tsConfig": "tsconfig.json"
+        "tsconfig": "tsconfig.json"
       }]
     }
   }
