@@ -39,16 +39,8 @@ add_env_variable() {
     VAR_NAME=$1
     VAR_VALUE=$2
 
-    # if ! grep -q "^${VAR_NAME}=" "$ENV_FILE"; then
-    #     echo "Adding ${VAR_NAME} to .env..."
-    #     echo "${VAR_NAME}=${VAR_VALUE}" >> "$ENV_FILE"
-    # else
-    #     echo "${VAR_NAME} already exists in .env."
-    # fi
-
     if grep -q "^${VAR_NAME}=" "$ENV_FILE"; then
         echo "Replacing ${VAR_NAME} in .env..."
-        # Use sed to replace the line containing the variable
         sed -i "/^${VAR_NAME}=/c\\${VAR_NAME}=${VAR_VALUE}" "$ENV_FILE"
     else
         echo "Adding ${VAR_NAME} to .env..."
@@ -68,6 +60,14 @@ generate_keypair() {
     fi
     echo "Generating $key_file keypair..."
     solana-keygen new --outfile "$key_file" --no-bip39-passphrase --force
+}
+
+airdrop() {
+    local keypair=$1
+    local amount=$2
+    echo "Airdropping $amount SOL to $keypair..."
+    solana airdrop $amount --url $RPC_URL -k $keypair
+    echo "$amount SOL airdropped to $keypair."
 }
 
 install_deps
@@ -99,12 +99,7 @@ generate_keypair "keys/admin.json"
 echo "Generating user keypair..."
 generate_keypair "keys/user.json"
 
-echo "Airdropping ${SOLS_TO_AIRDROP} SOL to admin..."
-solana airdrop ${SOLS_TO_AIRDROP} --url $RPC_URL -k ./keys/admin.json
-echo "${SOLS_TO_AIRDROP} Honeynet SOL airdropped to admin."
+airdrop "keys/admin.json" $SOLS_TO_AIRDROP
+airdrop "keys/user.json" $SOLS_TO_AIRDROP
 
-echo "Airdropping ${SOLS_TO_AIRDROP} SOL to user..."
-solana airdrop ${SOLS_TO_AIRDROP} --url $RPC_URL -k ./keys/user.json
-echo "${SOLS_TO_AIRDROP} Honeynet SOL airdropped to user."
-
-echo "Script completed. Happy testing!"
+echo "Setup completed. Happy testing!"
