@@ -1,4 +1,4 @@
-console.warn = () => {}; // Suppresses console.warn from web3.js
+console.warn = () => { }; // Suppresses console.warn from web3.js
 
 import {
   HPL_HIVE_CONTROL_PROGRAM,
@@ -179,11 +179,11 @@ describe("Nectar Missions", () => {
             },
             ...(merkleTree
               ? [
-                  {
-                    kind: "MerkleTree",
-                    params: merkleTree.toString(),
-                  },
-                ]
+                {
+                  kind: "MerkleTree",
+                  params: merkleTree.toString(),
+                },
+              ]
               : []),
           ],
         },
@@ -216,7 +216,7 @@ describe("Nectar Missions", () => {
     // Create Characters Tree
     if (
       !characterModel.merkle_trees.merkle_trees[
-        characterModel.merkle_trees.active
+      characterModel.merkle_trees.active
       ]
     ) {
       log("Creating Characters Tree");
@@ -719,7 +719,7 @@ describe("Nectar Missions", () => {
       );
     }
 
-    await wait();
+    await wait(3);
     characterOnMission.forEach(async (character) => {
       await client
         .findCharacters({

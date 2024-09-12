@@ -1,4 +1,4 @@
-console.warn = () => {}; // Suppresses console.warn from web3.js
+console.warn = () => { }; // Suppresses console.warn from web3.js
 
 import {
   BadgesCondition,
@@ -100,10 +100,10 @@ describe("Hive Control Users n Profiles", () => {
             fetchOptions: !accessToken
               ? {}
               : {
-                  headers: {
-                    authorization: `Bearer ${accessToken}`,
-                  },
+                headers: {
+                  authorization: `Bearer ${accessToken}`,
                 },
+              },
           }
         );
 
@@ -149,10 +149,10 @@ describe("Hive Control Users n Profiles", () => {
           fetchOptions: !accessToken
             ? {}
             : {
-                headers: {
-                  authorization: `Bearer ${accessToken}`,
-                },
+              headers: {
+                authorization: `Bearer ${accessToken}`,
               },
+            },
         }
       );
 
@@ -190,10 +190,10 @@ describe("Hive Control Users n Profiles", () => {
           fetchOptions: !accessToken
             ? {}
             : {
-                headers: {
-                  authorization: `Bearer ${accessToken}`,
-                },
+              headers: {
+                authorization: `Bearer ${accessToken}`,
               },
+            },
         }
       );
 
@@ -225,10 +225,10 @@ describe("Hive Control Users n Profiles", () => {
           fetchOptions: !accessToken
             ? {}
             : {
-                headers: {
-                  authorization: `Bearer ${accessToken}`,
-                },
+              headers: {
+                authorization: `Bearer ${accessToken}`,
               },
+            },
         }
       );
 

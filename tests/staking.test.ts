@@ -1,4 +1,4 @@
-console.warn = () => {}; // Suppresses console.warn from web3.js
+console.warn = () => { }; // Suppresses console.warn from web3.js
 
 import * as web3 from "@solana/web3.js";
 import base58 from "bs58";
@@ -126,11 +126,11 @@ describe("Test Nectar Staking Txs", () => {
             },
             ...(merkleTree
               ? [
-                  {
-                    kind: "MerkleTree",
-                    params: merkleTree.toString(),
-                  },
-                ]
+                {
+                  kind: "MerkleTree",
+                  params: merkleTree.toString(),
+                },
+              ]
               : []),
           ],
         },
@@ -158,7 +158,7 @@ describe("Test Nectar Staking Txs", () => {
     // Create Characters Tree
     if (
       !characterModel.merkle_trees.merkle_trees[
-        characterModel.merkle_trees.active
+      characterModel.merkle_trees.active
       ]
     ) {
       const {
@@ -516,7 +516,7 @@ describe("Test Nectar Staking Txs", () => {
       [userKeypair],
       "createUnstakeCharactersTransactions"
     );
-    
+
     await wait(3);
 
     const { character: characterRefetch } = await client.findCharacters({

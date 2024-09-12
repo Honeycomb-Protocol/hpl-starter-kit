@@ -1,4 +1,4 @@
-console.warn = () => {}; // Suppresses console.warn from web3.js
+console.warn = () => { }; // Suppresses console.warn from web3.js
 
 import * as web3 from "@solana/web3.js";
 import {
