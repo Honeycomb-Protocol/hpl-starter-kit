@@ -33,6 +33,7 @@
     "typescript": "^5.4.5"
   },
   "jest": {
+    "verbose": true,
     "preset": "ts-jest",
     "testEnvironment": "node",
     "roots": [
@@ -40,11 +41,6 @@
     ],
     "testMatch": [
       "**/*.test.ts"
-    ],
-    "transform": {
-      "^.+\\.test.ts?$": ["ts-jest", {
-        "tsconfig": "tsconfig.json"
-      }]
-    }
+    ]
   }
 }
