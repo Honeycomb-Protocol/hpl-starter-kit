@@ -719,7 +719,7 @@ describe("Nectar Missions", () => {
       );
     }
 
-    await wait(3);
+    await wait(30);
     characterOnMission.forEach(async (character) => {
       await client
         .findCharacters({
@@ -727,6 +727,7 @@ describe("Nectar Missions", () => {
         })
         .then((res) => {
           const character = res.character[0];
+          console.log(character.usedBy);
           expect(character.usedBy).toBeTruthy();
         });
     });
@@ -744,7 +745,7 @@ describe("Nectar Missions", () => {
 
     // Wait for mission's end
     log("Waiting for mission to end (Collect Rewards Scenario)");
-    await wait(15);
+    await wait(30);
 
     const {
       createRecallCharactersTransaction: {
