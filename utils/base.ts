@@ -86,8 +86,8 @@ export const sendTransaction = async (
     },
     signers,
     {
-      skipPreflight: false,
-      // commitment: "finalized",
+      skipPreflight: true,
+      commitment: "finalized",
     }
   );
   if (logOnSuccess || response.status !== "Success") {
