@@ -1,6 +1,10 @@
 {
   "scripts": {
-    "test": "jest"
+    "test": "jest --maxWorkers=1",
+    "test:hive": "yarn test hive-control",
+    "test:resource": "yarn test resource",
+    "test:mission": "yarn test missions",
+    "test:staking": "yarn test staking"
   },
   "dependencies": {
     "@coral-xyz/anchor": "0.28.0",
