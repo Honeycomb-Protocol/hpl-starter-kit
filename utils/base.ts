@@ -94,6 +94,7 @@ export const sendTransaction = async (
     errorLog(action, response.status, response.signature, response.error);
   }
   expect(response.status).toBe("Success");
+  await wait(3);
   return response;
 };
 export const authorize = async (keypair = userKeypair) => {
@@ -134,6 +135,7 @@ export const sendTransactions = async (
     }
   );
   // expect(responses.length).toBe(txResponse.transactions.length);
+  await wait(10);
   return responses;
 };
 
