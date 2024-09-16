@@ -727,7 +727,6 @@ describe("Nectar Missions", () => {
         })
         .then((res) => {
           const character = res.character[0];
-          console.log(character.usedBy);
           expect(character.usedBy).toBeTruthy();
         });
     });
