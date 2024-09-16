@@ -127,8 +127,6 @@ describe("resource fungible token account state", () => {
 
             await sendTransaction(userTx, [adminKeypair], "createNewUserTransaction");
 
-            await wait(3);
-
             await client
                 .findUsers({
                     wallets: [userKeypair.publicKey.toString()],
@@ -174,8 +172,6 @@ describe("resource fungible token account state", () => {
                 "createNewProfileTransaction"
             );
 
-            await wait(3);
-
             await client
                 .findProfiles({
                     userIds: [user.id],
@@ -215,8 +211,6 @@ describe("resource fungible token account state", () => {
                     [adminKeypair],
                     "createCreateResourceTransaction" + i
                 );
-
-                await wait(3);
 
                 // add the resource to the list
                 resourcesAddresses.push(resource);
@@ -340,8 +334,6 @@ describe("resource fungible token account state", () => {
                 );
             }
             log("created a recipe", recipeAddress);
-
-            await wait(3);
         }
 
         await client

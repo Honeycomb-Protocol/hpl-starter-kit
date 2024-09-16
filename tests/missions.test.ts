@@ -151,8 +151,6 @@ describe("Nectar Missions", () => {
         [adminKeypair],
         "createCreateNewResourceTransaction"
       );
-
-      await wait(3);
     }
 
     resource = await client
@@ -332,8 +330,6 @@ describe("Nectar Missions", () => {
     expect(
       project.profileTrees.merkle_trees[project.profileTrees.active]
     ).toBeTruthy();
-
-    await wait(3);
 
     await client
       .findUsers({
@@ -719,7 +715,6 @@ describe("Nectar Missions", () => {
       );
     }
 
-    await wait(30);
     characterOnMission.forEach(async (character) => {
       await client
         .findCharacters({

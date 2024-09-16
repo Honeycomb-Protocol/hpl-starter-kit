@@ -62,8 +62,6 @@ describe("Hive Control Users n Profiles", () => {
         "createNewUserTransaction"
       );
 
-      await wait();
-
       user = await client
         .findUsers({
           wallets: [userKeypair.publicKey.toString()],
@@ -84,8 +82,6 @@ describe("Hive Control Users n Profiles", () => {
         projects: [project.address],
       })
       .then(({ profile: [profile] }) => profile);
-
-    await wait();
 
     if (!profile) {
       if (!accessToken) throw new Error(`Access token not created`);
@@ -112,8 +108,6 @@ describe("Hive Control Users n Profiles", () => {
         [userKeypair],
         "createNewProfileTransaction"
       );
-
-      await wait();
 
       await client
         .findProfiles({
@@ -162,8 +156,6 @@ describe("Hive Control Users n Profiles", () => {
       "createUpdateProfileTransaction"
     );
 
-    await wait();
-
     await client
       .findProfiles({
         userIds: [user.id],
@@ -199,8 +191,6 @@ describe("Hive Control Users n Profiles", () => {
 
     await sendTransaction(txResponse, [userKeypair], "Update Social Info");
 
-    await wait();
-
     await client
       .findUsers({
         wallets: [userKeypair.publicKey.toString()],
@@ -234,8 +224,6 @@ describe("Hive Control Users n Profiles", () => {
 
     await sendTransaction(txResponse, [userKeypair], "Update User Info");
 
-    await wait(5);
-
     await client
       .findUsers({
         wallets: [userKeypair.publicKey.toString()],
@@ -247,8 +235,6 @@ describe("Hive Control Users n Profiles", () => {
   });
 
   it("Claim Badge Criteria", async () => {
-    await wait(20);
-
     const { createClaimBadgeCriteriaTransaction: txResponse } =
       await client.createClaimBadgeCriteriaTransaction({
         args: {
@@ -265,8 +251,6 @@ describe("Hive Control Users n Profiles", () => {
       [userKeypair],
       "createClaimBadgeCriteriaTransaction"
     );
-
-    await wait(5);
 
     profile = await client
       .findProfiles({ userIds: [profile.userId], projects: [project.address] })

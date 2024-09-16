@@ -416,8 +416,6 @@ describe("Test Nectar Staking Txs", () => {
       "createStakeCharactersTransactions"
     );
 
-    await wait(30);
-
     const { character: characterRefetch } = await client.findCharacters({
       trees: characterModel.merkle_trees.merkle_trees,
     });
@@ -516,9 +514,7 @@ describe("Test Nectar Staking Txs", () => {
       [userKeypair],
       "createUnstakeCharactersTransactions"
     );
-
-    await wait(3);
-
+    
     const { character: characterRefetch } = await client.findCharacters({
       addresses: character.map((x) => x!.address),
     });

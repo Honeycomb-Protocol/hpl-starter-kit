@@ -115,8 +115,6 @@ describe("resource fungible token ledger state", () => {
 
       await sendTransaction(userTx, [adminKeypair], "createNewUserTransaction");
 
-      await wait(3);
-
       await client
         .findUsers({
           wallets: [userKeypair.publicKey.toString()],
@@ -162,8 +160,6 @@ describe("resource fungible token ledger state", () => {
         "createNewProfileTransaction"
       );
 
-      await wait(3);
-
       await client
         .findProfiles({
           userIds: [user.id],
@@ -203,8 +199,6 @@ describe("resource fungible token ledger state", () => {
           [adminKeypair],
           "createCreateResourceTransaction" + i
         );
-
-        await wait(3);
 
         // add the resource to the list
         resourcesAddresses.push(resource);
@@ -260,8 +254,6 @@ describe("resource fungible token ledger state", () => {
       );
 
       log("created resource tree", treeAddress);
-
-      await wait(3);
     }
 
     // load the resources from the client
@@ -318,8 +310,6 @@ describe("resource fungible token ledger state", () => {
         );
       }
       log("created a recipe", recipeAddress);
-
-      await wait(3);
     }
 
     await client
@@ -435,8 +425,6 @@ describe("resource fungible token ledger state", () => {
       );
     }
 
-    await wait(5);
-
     await client
       .findHoldings({
         trees: resources.flatMap(
@@ -486,7 +474,6 @@ describe("resource fungible token ledger state", () => {
       );
     }
 
-    await wait(5);
     await client
       .findHoldings({
         trees: resources.flatMap(
@@ -524,7 +511,6 @@ describe("resource fungible token ledger state", () => {
       );
     }
 
-    await wait(5);
     await client
       .findHoldings({
         trees: resources.flatMap(
@@ -571,8 +557,6 @@ describe("resource fungible token ledger state", () => {
       "createUnwrapResourceTransaction" + resource.address
     );
 
-    await wait(5);
-
     await client
       .findHoldings({
         trees: merkleTrees.merkle_trees,
@@ -614,8 +598,6 @@ describe("resource fungible token ledger state", () => {
       "createWrapResourceTransaction" + resource.address
     );
 
-    await wait(5);
-
     await client
       .findHoldings({
         trees: merkleTrees.merkle_trees,
@@ -630,8 +612,6 @@ describe("resource fungible token ledger state", () => {
 
   it("cooking process", async () => {
     if (!recipe) throw new Error(`Recipe not created`);
-
-    await wait(3);
 
     const {
       createInitCookingProcessTransactions: {
