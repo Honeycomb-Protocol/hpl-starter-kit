@@ -482,6 +482,7 @@ describe("Test Nectar Staking Txs", () => {
 
       log("Lookup Table Address", lookupTableAddressPub.toString());
       lookupTableAddress = lookupTableAddressPub.toString();
+      await wait(5);
     }
     expect(lookupTableAddress).toBeTruthy();
   });

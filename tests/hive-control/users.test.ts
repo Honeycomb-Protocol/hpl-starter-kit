@@ -7,12 +7,11 @@ import {
   User,
 } from "@honeycomb-protocol/edge-client";
 import {
-  authorize,
   client,
+  createAuthorization,
   createProject,
   sendTransaction,
   userKeypair,
-  wait,
 } from "../../utils";
 import { Keypair } from "@solana/web3.js";
 
@@ -74,7 +73,7 @@ describe("Hive Control Users n Profiles", () => {
       expect(user.info.bio).toBe(userInfo.bio);
       expect(user.info.pfp).toBe(userInfo.pfp);
     }
-    if (!accessToken) accessToken = await authorize(userKeypair);
+    if (!accessToken) accessToken = await createAuthorization();
 
     profile = await client
       .findProfiles({

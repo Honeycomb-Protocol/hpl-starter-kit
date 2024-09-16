@@ -357,7 +357,7 @@ describe("Nectar Missions", () => {
       })
       .then(({ user: [userT] }) => (user = userT));
 
-    accessToken = await authorize(userKeypair);
+    accessToken = await authorize();
 
     expect(user).toBeTruthy();
 
@@ -655,6 +655,7 @@ describe("Nectar Missions", () => {
 
       log("Lookup Table Address", lookupTableAddressPub.toString());
       lookupTableAddress = lookupTableAddressPub.toString();
+      await wait(5);
     }
 
     expect(lookupTableAddress).toBeTruthy();
@@ -739,7 +740,7 @@ describe("Nectar Missions", () => {
 
     // Wait for mission's end
     log("Waiting for mission to end (Collect Rewards Scenario)");
-    await wait(30);
+    await wait(50);
 
     const {
       createRecallCharactersTransaction: {

@@ -94,24 +94,12 @@ export const sendTransaction = async (
     errorLog(action, response.status, response.signature, response.error);
   }
   expect(response.status).toBe("Success");
-  await wait(3);
   return response;
 };
-export const authorize = async (keypair = userKeypair) => {
-  const {
-    authRequest: { message: authRequest },
-  } = await client.authRequest({
-    wallet: keypair.publicKey.toString(),
-  });
-  const message = new TextEncoder().encode(authRequest);
-  const sig = nacl.sign.detached(message, keypair.secretKey);
-  const signature = base58.encode(sig);
-  return client
-    .authConfirm({
-      wallet: keypair.publicKey.toString(),
-      signature,
-    })
-    .then(({ authConfirm: { accessToken } }) => accessToken);
+export const authorize = () => {
+  const { accessToken } = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../tests/", "accessToken.json"), "utf8"));
+
+  return accessToken;
 };
 
 export const sendTransactions = async (
@@ -125,7 +113,7 @@ export const sendTransactions = async (
     signer,
     {
       skipPreflight: true,
-      commitment: "finalized",
+      commitment: "processed",
     },
     (response) => {
       if (response.status !== "Success") {
@@ -135,7 +123,7 @@ export const sendTransactions = async (
     }
   );
   // expect(responses.length).toBe(txResponse.transactions.length);
-  await wait(10);
+  await wait(3);
   return responses;
 };
 

@@ -1,12 +1,16 @@
+# Solana admin and user keypairs
+# Ignore all files inside the keys folder
+keys/*.json
+
 # Node.js
 node_modules/
 npm-debug.log
 yarn-debug.log
 yarn-error.log
 
+# Tests
+tests/accessToken.json
+tests/project.json
+
 # Dotenv file
 .env
-
-# Solana admin and user keypairs
-# Ignore all files inside the keys folder
-keys/*.json

@@ -136,7 +136,7 @@ describe("resource fungible token account state", () => {
         expect(user).toBeTruthy();
 
         // access token
-        if (!accessToken) accessToken = await authorize(userKeypair);
+        if (!accessToken) accessToken = await authorize();
 
         await client
             .findProfiles({
@@ -412,6 +412,7 @@ describe("resource fungible token account state", () => {
 
             lutAddress = lookupTableAddressPub.toBase58();
             log("created a lut", lutAddress);
+            await wait(5);
         }
 
         expect(lutAddress).toBeTruthy();
