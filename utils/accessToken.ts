@@ -35,7 +35,10 @@ export const readAccessToken = () => {
         return {accessToken, timestamp};
     } catch (error) {
         if (error.code === "ENOENT") {
-            return null;
+            return {
+                accessToken: null,
+                timestamp: 0,
+            };
         }
         console.error("Could not read access token", error);
         throw error;

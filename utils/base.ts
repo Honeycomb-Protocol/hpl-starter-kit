@@ -102,9 +102,7 @@ export const authorize = async () => {
   let release;
   try {
     release = await lockfile.lock(ACCESS_TOKEN_DIR, { retries: 30, retryWait: 2000 });
-    let { accessToken } = await readAccessToken() || {
-      accessToken: null,
-    };
+    let { accessToken } = await readAccessToken();
     if (!accessToken) {
       accessToken = await createAuthorization();
     }
