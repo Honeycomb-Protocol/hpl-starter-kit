@@ -20,19 +20,7 @@ There are two ways to setup the demos:
 
 2. Run `yarn` or `npm` to install all dependencies.
 
-3. Install ts-node globally by running the following command:
-
-Yarn:
-```bash
-yarn global add ts-node
-```
-
-NPM:
-```bash
-npm install -g ts-node
-```
-
-4. Generate the keys needed for the demos. You can do this by running the following command:
+3. Generate the keys needed for the demos. You can do this by running the following command:
 
 ```bash
 solana-keygen new --outfile ./keys/admin.json
@@ -42,7 +30,7 @@ solana-keygen new --outfile ./keys/admin.json
 solana-keygen new --outfile ./keys/user.json
 ```
 
-5. Airdrop some SOL to the admin and user accounts. You can do this by running the following command:
+4. Airdrop some SOL to the admin and user accounts. You can do this by running the following command:
 
 ```bash
 solana airdrop 1000 --url https://rpc.test.honeycombprotocol.com/ --keypair ./keys/admin.json
@@ -52,7 +40,7 @@ solana airdrop 1000 --url https://rpc.test.honeycombprotocol.com/ --keypair ./ke
 solana airdrop 1000 --url https://rpc.test.honeycombprotocol.com/ --keypair ./keys/user.json
 ```
 
-6. Create a `.env` file at the root of this repo and add the following:
+5. Create a `.env` file at the root of this repo and add the following:
 
 ```env
 API_URL="https://edge.test.honeycombprotocol.com/"
@@ -93,3 +81,11 @@ For example:
 ```bash
 yarn test hive-control
 ```
+
+OR 
+
+```bash
+yarn test missions staking
+```
+
+The last command will run both the missions and staking demos.
