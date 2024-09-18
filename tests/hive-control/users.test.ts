@@ -7,8 +7,8 @@ import {
   User,
 } from "@honeycomb-protocol/edge-client";
 import {
+  authorize,
   client,
-  createAuthorization,
   createProject,
   sendTransaction,
   userKeypair,
@@ -73,7 +73,7 @@ describe("Hive Control Users n Profiles", () => {
       expect(user.info.bio).toBe(userInfo.bio);
       expect(user.info.pfp).toBe(userInfo.pfp);
     }
-    if (!accessToken) accessToken = await createAuthorization();
+    if (!accessToken) accessToken = await authorize();
 
     profile = await client
       .findProfiles({

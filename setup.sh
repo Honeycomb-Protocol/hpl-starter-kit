@@ -28,8 +28,10 @@ install_deps() {
             echo "Yarn already installed."
         fi
         yarn install
+        yarn global add ts-node
     elif [ "$package_manager" == "2" ]; then
         npm install
+        npm install -g ts-node
     else
         echo "Skipping package installation."
     fi
@@ -47,7 +49,6 @@ add_env_variable() {
         echo "${VAR_NAME}=${VAR_VALUE}" >> "$ENV_FILE"
     fi
 }
-
 
 generate_keypair() {
     local key_file=$1

@@ -14,12 +14,13 @@ import {
   Honeycomb,
   identityModule,
 } from "@honeycomb-protocol/hive-control";
-import { AssetResponse } from ".";
+import { ACCESS_TOKEN_DIR, AssetResponse, createAuthorization, readAccessToken } from ".";
 import createLibreplexProgram from "./programs/libreplex_fair_launch";
+import lockfile from "proper-lockfile";
 
 try {
   jest.setTimeout(200000);
-} catch {}
+} catch { }
 
 require("dotenv").config();
 
@@ -68,9 +69,9 @@ export const libreplexFairLaunchProgram = createLibreplexProgram(
   adminKeypair
 );
 
-export const log = process.env.DEBUG_LOGS == "true" ? console.log : () => {};
-export const errorLog = process.env.ERROR_LOGS == "true" ? console.error : () => {};
-export const dirLog = process.env.DEBUG_LOGS == "true" ? console.dir : () => {} ;
+export const log = process.env.DEBUG_LOGS == "true" ? console.log : () => { };
+export const errorLog = process.env.ERROR_LOGS == "true" ? console.error : () => { };
+export const dirLog = process.env.DEBUG_LOGS == "true" ? console.dir : () => { };
 export const sendTransaction = async (
   txResponse: Transaction,
   signers: web3.Keypair[],
@@ -96,10 +97,26 @@ export const sendTransaction = async (
   expect(response.status).toBe("Success");
   return response;
 };
-export const authorize = () => {
-  const { accessToken } = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../tests/", "accessToken.json"), "utf8"));
 
-  return accessToken;
+export const authorize = async () => {
+  let release;
+  try {
+    release = await lockfile.lock(ACCESS_TOKEN_DIR, { retries: 30, retryWait: 2000 });
+    let { accessToken } = await readAccessToken() || {
+      accessToken: null,
+    };
+    if (!accessToken) {
+      accessToken = await createAuthorization();
+    }
+    return accessToken;
+  } catch (error) {
+    console.error("Error during authorization", error);
+    throw error;
+  } finally {
+    if (release) {
+      await release();
+    }
+  }
 };
 
 export const sendTransactions = async (
