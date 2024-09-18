@@ -168,13 +168,14 @@ describe("Hive Control Users n Profiles", () => {
   });
 
   it("Add Wallet", async () => {
+    const newPublicKey = Keypair.generate().publicKey.toString();
     const { createUpdateUserTransaction: txResponse } =
       await client.createUpdateUserTransaction(
         {
           payer: userKeypair.publicKey.toString(),
           populateCivic: true,
           wallets: {
-            add: [Keypair.generate().publicKey.toString()],
+            add: [newPublicKey],
           },
         },
         {
@@ -197,7 +198,7 @@ describe("Hive Control Users n Profiles", () => {
       .then(({ user: [userT] }) => (user = userT));
 
     expect(user).toBeTruthy();
-    expect(user.info.username).toBe(userInfo.username);
+    expect(user.wallets.wallets).toContain(newPublicKey);
   });
 
   it("Remove Wallet", async () => {
@@ -230,7 +231,8 @@ describe("Hive Control Users n Profiles", () => {
       .then(({ user: [userT] }) => (user = userT));
 
     expect(user).toBeTruthy();
-    expect(user.info.username).toBe(userInfo.username);
+    expect(user.wallets.wallets).toHaveLength(1);
+    expect(user.wallets.wallets).toContain(userKeypair.publicKey.toBase58());
   });
 
   it("Claim Badge Criteria", async () => {
