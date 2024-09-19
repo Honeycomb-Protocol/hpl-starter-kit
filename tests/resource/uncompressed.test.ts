@@ -4,7 +4,6 @@ import {
     HPL_HIVE_CONTROL_PROGRAM,
     METADATA_PROGRAM_ID,
     VAULT,
-    wait,
 } from "@honeycomb-protocol/hive-control";
 import { HPL_RESOURCE_MANAGER_PROGRAM } from "@honeycomb-protocol/resource-manager";
 import {
@@ -34,6 +33,7 @@ import {
     sendTransaction,
     userKeypair,
     log,
+    wait,
 } from "../../utils";
 import {
     Profile,
