@@ -205,7 +205,6 @@ describe("Hive Control Users n Profiles", () => {
     const { createUpdateUserTransaction: txResponse } =
       await client.createUpdateUserTransaction(
         {
-          info: userInfo,
           payer: userKeypair.publicKey.toString(),
           wallets: {
             remove: user.wallets.wallets.slice(1),
