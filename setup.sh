@@ -19,7 +19,7 @@ install_deps() {
         install_solana_cli
     fi
 
-    read -p "Do you use yarn or npm for package management? (1 for Yarn, 2 for NPM, type anything else to cancel): " package_manager
+    read -p "Do you use yarn or npm for package management? (1 for Yarn, 2 for NPM, type anything else to skip dependency installation): " package_manager
     if [ "$package_manager" == "1" ]; then
         if ! command -v yarn &> /dev/null; then
             echo "Yarn not found. Installing..."
@@ -33,7 +33,7 @@ install_deps() {
         npm install --legacy-peer-deps
         npm install -g ts-node
     else
-        echo "Skipping package installation."
+        echo "Skipping dependency installation."
     fi
 }
 
