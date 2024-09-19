@@ -682,10 +682,10 @@
     "@ethersproject/properties" "^5.7.0"
     "@ethersproject/strings" "^5.7.0"
 
-"@honeycomb-protocol/character-manager@^0.0.2-beta.21":
-  version "0.0.2-beta.21"
-  resolved "https://registry.yarnpkg.com/@honeycomb-protocol/character-manager/-/character-manager-0.0.2-beta.21.tgz#4b0583553957e50bbb64c81a04c3df89aaa80ca6"
-  integrity sha512-FpVKngDc0kokP39UoFYzPGyOytBH4gU0E3aLJeNmMMps3xgQBc2V2SyjEhu1mz0Vghd0BNvAwLqS/kbS5rrzDw==
+"@honeycomb-protocol/character-manager@^0.0.2-beta.23":
+  version "0.0.2-beta.23"
+  resolved "https://registry.yarnpkg.com/@honeycomb-protocol/character-manager/-/character-manager-0.0.2-beta.23.tgz#7a9819f433bf449aa69d41e3d9977a9e4b3dc5a5"
+  integrity sha512-Iw9KhtUNhgiKB2xFXTziHBglrNcfn/osyaJkTFTL23sLX8kMFQMdzSug96uw/1VtJwx/LVFGlU9tUGi9PJeY9g==
   dependencies:
     "@metaplex-foundation/mpl-bubblegum" "^0.7.0"
     "@metaplex-foundation/mpl-token-auth-rules" "^1.2.0"

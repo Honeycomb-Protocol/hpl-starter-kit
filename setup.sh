@@ -30,7 +30,7 @@ install_deps() {
         yarn install
         yarn global add ts-node
     elif [ "$package_manager" == "2" ]; then
-        npm install
+        npm install --legacy-peer-deps
         npm install -g ts-node
     else
         echo "Skipping package installation."
