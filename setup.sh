@@ -24,6 +24,7 @@ install_deps() {
         if ! command -v yarn &> /dev/null; then
             echo "Yarn not found. Installing..."
             npm install -g yarn@1.22.22
+            rm ./package-lock.json
         else
             echo "Yarn already installed."
         fi
@@ -32,6 +33,7 @@ install_deps() {
     elif [ "$package_manager" == "2" ]; then
         npm install --legacy-peer-deps
         npm install -g ts-node
+        rm ./yarn.lock
     else
         echo "Skipping dependency installation."
     fi
