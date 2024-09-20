@@ -3,8 +3,10 @@ console.warn = () => { }; // Suppresses console.warn from web3.js
 import {
   BadgesCondition,
   Profile,
+  ProfileInfoInput,
   Project,
   User,
+  UserInfoInput,
 } from "@honeycomb-protocol/edge-client";
 import {
   authorize,
@@ -21,14 +23,14 @@ describe("Hive Control Users n Profiles", () => {
   let project: Project;
   let profile: Profile;
 
-  const userInfo = {
+  const userInfo: UserInfoInput = {
     username: "hcDev",
     name: "Honeycomb Developer",
     bio: "This user is created for testing purposes",
     pfp: "https://lh3.googleusercontent.com/-Jsm7S8BHy4nOzrw2f5AryUgp9Fym2buUOkkxgNplGCddTkiKBXPLRytTMXBXwGcHuRr06EvJStmkHj-9JeTfmHsnT0prHg5Mhg",
   };
 
-  const profileInfo = {
+  const profileInfo: ProfileInfoInput = {
     name: `(Profile) ${userInfo.name}`,
     bio: `This is profile of ${userInfo.username}`,
     pfp: "https://lh3.googleusercontent.com/-Jsm7S8BHy4nOzrw2f5AryUgp9Fym2buUOkkxgNplGCddTkiKBXPLRytTMXBXwGcHuRr06EvJStmkHj-9JeTfmHsnT0prHg5Mhg",
@@ -177,9 +179,15 @@ describe("Hive Control Users n Profiles", () => {
           wallets: {
             add: [newPublicKey],
           },
+          info: {
+            bio: "This user is created for testing purposes",
+            name: "Honeycomb Developer",
+            pfp: "https://lh3.googleusercontent.com/-Jsm7S8BHy4nOzrw2f5AryUgp9Fym2buUOkkxgNplGCddTkiKBXPLRytTMXBXwGcHuRr06EvJStmkHj-9JeTfmHsnT0prHg5Mhg",
+            username: "hcDev",
+          }
         },
         {
-          fetchOptions: !accessToken
+          fetchOptions: accessToken
             ? {}
             : {
               headers: {
