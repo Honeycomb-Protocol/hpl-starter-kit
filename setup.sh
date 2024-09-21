@@ -42,6 +42,8 @@ install_deps() {
             echo "Bun already installed."
         fi
         bun install
+        bun add -g ts-node
+        rm ./yarn.lock
     else
         echo "Skipping dependency installation."
     fi
