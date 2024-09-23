@@ -30,19 +30,25 @@ install_deps() {
         fi
         yarn install
         yarn global add ts-node
+        rm ./package-lock.json
+        rm ./bun.lockb
     elif [ "$package_manager" == "2" ]; then
         npm install --legacy-peer-deps
         npm install -g ts-node
         rm ./yarn.lock
+        rm ./bun.lockb
     elif [ "$package_manager" == "3" ]; then
         if ! command -v bun &> /dev/null; then
             echo "Bun not found. Installing..."
             curl -fsSL https://bun.sh/install | bash
+            export BUN_INSTALL="$HOME/.bun"
+            export PATH=$BUN_INSTALL/bin:$PATH
         else
             echo "Bun already installed."
         fi
         bun install
         rm ./yarn.lock
+        rm ./package-lock.json
     else
         echo "Skipping dependency installation."
     fi
