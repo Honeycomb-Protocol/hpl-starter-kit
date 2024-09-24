@@ -187,7 +187,7 @@ describe("Hive Control Users n Profiles", () => {
           }
         },
         {
-          fetchOptions: accessToken
+          fetchOptions: !accessToken
             ? {}
             : {
               headers: {
