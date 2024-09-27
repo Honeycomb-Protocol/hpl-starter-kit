@@ -179,12 +179,6 @@ describe("Hive Control Users n Profiles", () => {
           wallets: {
             add: [newPublicKey],
           },
-          info: {
-            bio: "This user is created for testing purposes",
-            name: "Honeycomb Developer",
-            pfp: "https://lh3.googleusercontent.com/-Jsm7S8BHy4nOzrw2f5AryUgp9Fym2buUOkkxgNplGCddTkiKBXPLRytTMXBXwGcHuRr06EvJStmkHj-9JeTfmHsnT0prHg5Mhg",
-            username: "hcDev",
-          }
         },
         {
           fetchOptions: !accessToken
