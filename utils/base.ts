@@ -155,21 +155,14 @@ export function makeid(length) {
   return result;
 }
 
-export async function createProject({
+export async function createProject(
   name = "Test Project",
-  profilesTreeCapacity = 100,
   authority = adminKeypair.publicKey.toString(),
   payer = adminKeypair.publicKey.toString(),
   subsidizeFees = true,
+  createProfilesTree = true,
   createBadgingCriteria = true
-}: {
-  name?: string;
-  profilesTreeCapacity?: number;
-  authority?: string;
-  payer?: string;
-  subsidizeFees?: boolean;
-  createBadgingCriteria?: boolean;
-} = {}) {
+) {
   const {
     createCreateProjectTransaction: { project: projectAddress, tx: txResponse },
   } = await client.createCreateProjectTransaction({
@@ -216,19 +209,16 @@ export async function createProject({
     );
   }
 
-  if (profilesTreeCapacity) {
+  if (createProfilesTree) {
     const {
       createCreateProfilesTreeTransaction: { tx: txResponse },
     } = await client.createCreateProfilesTreeTransaction({
       treeConfig: {
-        basic: {
-          numAssets: profilesTreeCapacity,
+        advanced: {
+          maxDepth: 3,
+          maxBufferSize: 8,
+          canopyDepth: 3,
         },
-        // advanced: {
-        //   maxDepth: 3,
-        //   maxBufferSize: 8,
-        //   canopyDepth: 3,
-        // },
       },
       project: project.address,
       payer: adminKeypair.publicKey.toString(),
