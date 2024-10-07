@@ -728,8 +728,7 @@ describe("Nectar Missions", () => {
     });
   });
 
-  // This test has been skipped because the missions on-chain program needs to be updated for this test to work properly
-  it.skip("Collect Rewards + Recall", async () => {
+  it("Collect Rewards + Recall", async () => {
     if (!projectAddress)
       throw new Error(
         "Project not created, a valid project is needed to claim a Mission"
