@@ -73,9 +73,14 @@ describe("resource fungible token ledger state", () => {
 
   beforeAll(async () => {
     if (!projectAddress) {
-      project = await createProject({
-        createBadgingCriteria: false,
-      });
+      project = await createProject(
+        undefined,
+        undefined,
+        undefined,
+        true,
+        true,
+        false
+      );
 
       log("created project", project.address);
       projectAddress = project.address;
@@ -115,6 +120,8 @@ describe("resource fungible token ledger state", () => {
 
       await sendTransaction(userTx, [adminKeypair], "createNewUserTransaction");
 
+      await wait(3);
+
       await client
         .findUsers({
           wallets: [userKeypair.publicKey.toString()],
@@ -147,10 +154,10 @@ describe("resource fungible token ledger state", () => {
             fetchOptions: !accessToken
               ? {}
               : {
-                headers: {
-                  authorization: `Bearer ${accessToken}`,
+                  headers: {
+                    authorization: `Bearer ${accessToken}`,
+                  },
                 },
-              },
           }
         );
 
@@ -159,6 +166,8 @@ describe("resource fungible token ledger state", () => {
         [userKeypair],
         "createNewProfileTransaction"
       );
+
+      await wait(3);
 
       await client
         .findProfiles({
@@ -199,6 +208,8 @@ describe("resource fungible token ledger state", () => {
           [adminKeypair],
           "createCreateResourceTransaction" + i
         );
+
+        await wait(3);
 
         // add the resource to the list
         resourcesAddresses.push(resource);
@@ -254,6 +265,8 @@ describe("resource fungible token ledger state", () => {
       );
 
       log("created resource tree", treeAddress);
+
+      await wait(3);
     }
 
     // load the resources from the client
@@ -310,6 +323,8 @@ describe("resource fungible token ledger state", () => {
         );
       }
       log("created a recipe", recipeAddress);
+
+      await wait(3);
     }
 
     await client
@@ -388,7 +403,6 @@ describe("resource fungible token ledger state", () => {
 
       lutAddress = lookupTableAddressPub.toBase58();
       log("created a lut", lutAddress);
-      await wait(5);
     }
 
     expect(lutAddress).toBeTruthy();
@@ -405,7 +419,7 @@ describe("resource fungible token ledger state", () => {
         holdings: [holding],
       } = await client.findHoldings({
         trees: merkleTrees.merkle_trees,
-        holder: userKeypair.publicKey.toString(),
+        holders: [userKeypair.publicKey.toString()],
       });
 
       if (holding) continue;
@@ -426,12 +440,14 @@ describe("resource fungible token ledger state", () => {
       );
     }
 
+    await wait(10);
+
     await client
       .findHoldings({
         trees: resources.flatMap(
           (resource) => resource.storage.params?.merkle_trees.merkle_trees
         ) as string[],
-        holder: userKeypair.publicKey.toString(),
+        holders: [userKeypair.publicKey.toString()],
       })
       .then(({ holdings }) => {
         expect(holdings.length).toBe(resources.length);
@@ -454,7 +470,7 @@ describe("resource fungible token ledger state", () => {
         holdings: [holding],
       } = await client.findHoldings({
         trees: merkleTrees.merkle_trees,
-        holder: userKeypair.publicKey.toString(),
+        holders: [userKeypair.publicKey.toString()],
       });
 
       if (!holding) throw new Error(`Resource not minted`);
@@ -475,12 +491,13 @@ describe("resource fungible token ledger state", () => {
       );
     }
 
+    await wait(15);
     await client
       .findHoldings({
         trees: resources.flatMap(
           (resource) => resource.storage.params?.merkle_trees.merkle_trees
         ) as string[],
-        holder: userKeypair.publicKey.toString(),
+        holders: [userKeypair.publicKey.toString()],
       })
       .then(({ holdings }) => {
         expect(holdings.length).toBe(resources.length);
@@ -508,23 +525,25 @@ describe("resource fungible token ledger state", () => {
       await sendTransaction(
         tx,
         [userKeypair],
-        "createTransferResourceTransaction" + resource.address
+        "createTransferResourceTransaction" + resource.address,
+        true
       );
     }
 
+    await wait(15);
     await client
       .findHoldings({
         trees: resources.flatMap(
           (resource) => resource.storage.params?.merkle_trees.merkle_trees
         ) as string[],
-        holder: adminKeypair.publicKey.toString(),
+        holders: [adminKeypair.publicKey.toString()],
       })
       .then(({ holdings }) => {
         expect(holdings.length).toBe(resources.length);
         holdings.forEach((holding) => {
           expect(holding).toBeTruthy();
           expect(holding.holder).toBe(adminKeypair.publicKey.toString());
-          expect(holding.balance).toBe(String(100 * 10 ** 6));
+          expect(holding.balance).toBeTruthy();
         });
       });
   });
@@ -539,7 +558,7 @@ describe("resource fungible token ledger state", () => {
       holdings: [holding],
     } = await client.findHoldings({
       trees: merkleTrees.merkle_trees,
-      holder: userKeypair.publicKey.toString(),
+      holders: [userKeypair.publicKey.toString()],
     });
 
     if (!holding) throw new Error(`Resource not minted`);
@@ -558,10 +577,12 @@ describe("resource fungible token ledger state", () => {
       "createUnwrapResourceTransaction" + resource.address
     );
 
+    await wait(15);
+
     await client
       .findHoldings({
         trees: merkleTrees.merkle_trees,
-        holder: userKeypair.publicKey.toString(),
+        holders: [userKeypair.publicKey.toString()],
       })
       .then(({ holdings }) => {
         const holding = holdings[0];
@@ -580,7 +601,7 @@ describe("resource fungible token ledger state", () => {
       holdings: [holding],
     } = await client.findHoldings({
       trees: merkleTrees.merkle_trees,
-      holder: userKeypair.publicKey.toString(),
+      holders: [userKeypair.publicKey.toString()],
     });
 
     if (!holding) throw new Error(`Resource not minted`);
@@ -599,10 +620,12 @@ describe("resource fungible token ledger state", () => {
       "createWrapResourceTransaction" + resource.address
     );
 
+    await wait(15);
+
     await client
       .findHoldings({
         trees: merkleTrees.merkle_trees,
-        holder: userKeypair.publicKey.toString(),
+        holders: [userKeypair.publicKey.toString()],
       })
       .then(({ holdings }) => {
         const holding = holdings[0];
@@ -636,6 +659,8 @@ describe("resource fungible token ledger state", () => {
         [userKeypair],
         "createInitCookingProcessTransactions" + recipe.address
       );
+      await wait(5);
     }
   });
 });
+

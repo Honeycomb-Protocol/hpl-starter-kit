@@ -51,7 +51,6 @@ describe("Hive Control Users n Profiles", () => {
       const { createNewUserWithProfileTransaction: txResponse } =
         await client.createNewUserWithProfileTransaction({
           userInfo,
-          profileInfo,
           payer: userKeypair.publicKey.toString(),
           wallet: userKeypair.publicKey.toString(),
           project: project.address,
@@ -136,7 +135,7 @@ describe("Hive Control Users n Profiles", () => {
           customData: {
             add: {
               customField: ["customValue"],
-            },
+            }
           },
           payer: userKeypair.publicKey.toString(),
         },

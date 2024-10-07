@@ -1,4 +1,4 @@
-console.warn = () => {}; // Suppresses console.warn from web3.js
+console.warn = () => { }; // Suppresses console.warn from web3.js
 
 import {
     HPL_HIVE_CONTROL_PROGRAM,
@@ -69,7 +69,7 @@ export async function fetchAssetByOwner(
     return result;
 }
 
-describe("resource fungible token account state", () => {
+describe("Uncompressed resources tests", () => {
     let projectAddress: string;
     let recipeAddress: string;
     let lutAddress: string;
@@ -85,9 +85,14 @@ describe("resource fungible token account state", () => {
 
     beforeAll(async () => {
         if (!projectAddress) {
-            project = await createProject({
-                createBadgingCriteria: false,
-            });
+            project = await createProject(
+                undefined,
+                undefined,
+                undefined,
+                true,
+                true,
+                false
+            );
 
             log("created project", project.address);
             projectAddress = project.address;
@@ -126,6 +131,8 @@ describe("resource fungible token account state", () => {
                 });
 
             await sendTransaction(userTx, [adminKeypair], "createNewUserTransaction");
+
+            await wait(3);
 
             await client
                 .findUsers({
@@ -172,6 +179,8 @@ describe("resource fungible token account state", () => {
                 "createNewProfileTransaction"
             );
 
+            await wait(3);
+
             await client
                 .findProfiles({
                     userIds: [user.id],
@@ -211,6 +220,8 @@ describe("resource fungible token account state", () => {
                     [adminKeypair],
                     "createCreateResourceTransaction" + i
                 );
+
+                await wait(3);
 
                 // add the resource to the list
                 resourcesAddresses.push(resource);
@@ -291,6 +302,7 @@ describe("resource fungible token account state", () => {
                 tx,
                 [userKeypair],
                 "createTransferResourceTransaction" + resource.address,
+                true
             );
         }
     });
@@ -334,6 +346,8 @@ describe("resource fungible token account state", () => {
                 );
             }
             log("created a recipe", recipeAddress);
+
+            await wait(3);
         }
 
         await client
@@ -412,7 +426,6 @@ describe("resource fungible token account state", () => {
 
             lutAddress = lookupTableAddressPub.toBase58();
             log("created a lut", lutAddress);
-            await wait(5);
         }
 
         expect(lutAddress).toBeTruthy();
