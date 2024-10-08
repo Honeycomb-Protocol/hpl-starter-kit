@@ -2,7 +2,6 @@ import {
     AssemblerConfig,
     Character,
     CharacterModel,
-    CharacterTraitInput,
     MintAsKind,
     Project,
   } from "@honeycomb-protocol/edge-client";

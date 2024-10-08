@@ -14,8 +14,8 @@ import {
   getConcurrentMerkleTreeAccountSize,
 } from "@solana/spl-account-compression";
 import { PublicKey } from "@solana/web3.js";
-import { errorLog } from ".";
-import type { EdgeClient } from "@honeycomb-protocol/edge-client/client/types";
+import { errorLog, RPC_URL } from ".";
+import { Proof } from "@honeycomb-protocol/edge-client";
 
 const TOKEN_METADATA_PROGRAM_ID = new PublicKey(MPL_TOKEN_METADATA_PROGRAM_ID);
 
@@ -135,40 +135,58 @@ export type JsonMetadata = {
  * @category Types
  */
 export type Asset = {
-  mint: web3.PublicKey;
+  interface: string;
+  mint: string;
   json?: JsonMetadata | null;
   jsonLoaded: boolean;
   name: string;
   symbol: string;
   uri: string;
+  sellerFeeBasisPoints: number;
+  primarySaleHappened: boolean;
+  tokenStandard?: string;
   creators: {
-    address: web3.PublicKey;
+    address: string;
     share: number;
     verified: boolean;
   }[];
   collection?: {
     verified: boolean;
-    address: web3.PublicKey;
+    address: string;
   } | null;
-  frozen: boolean;
+  authority: string;
+
+  isTokenExtensions: boolean;
 
   isProgrammableNft?: boolean | null;
-  programmableConfig?: { ruleSet: web3.PublicKey } | null;
+  programmableConfig?: { ruleSet: string } | null;
 
   compression?: {
     leafId: number;
-    dataHash: web3.PublicKey;
-    creatorHash: web3.PublicKey;
-    assetHash: web3.PublicKey;
-    tree: web3.PublicKey;
-    proof?: undefined;
+    dataHash: string;
+    creatorHash: string;
+    assetHash: string;
+    tree: string;
+    proof?: Proof;
   } | null;
   isCompressed: boolean;
+
+  ownership: {
+    delegate?: string;
+    owner: string;
+  };
+
+  editionNonce?: number;
 
   links?: {
     [key: string]: string | undefined;
   } | null;
+
+  mutable: boolean;
+  frozen: boolean;
+  burnt: boolean;
 };
+
 
 export async function createNewTree(
   connection: web3.Connection,
@@ -361,13 +379,13 @@ export async function mintOneCNFT(
 }
 
 export async function fetchHeliusAssets(
-  heliusRpc: string,
   args:
-    | {
-        walletAddress: web3.PublicKey;
-        collectionAddress: web3.PublicKey;
-      }
-    | { mintList: web3.PublicKey[] }
+  | {
+    walletAddress: web3.PublicKey;
+    collectionAddress: web3.PublicKey;
+  }
+  | { mintList: web3.PublicKey[] },
+  heliusRpc: string = RPC_URL,
 ) {
   if ("mintList" in args) {
     try {
@@ -447,40 +465,48 @@ export const parseHeliusAsset = (asset: HeluisAsset): Asset => {
     };
   }
   return {
-    mint: new web3.PublicKey(asset.id),
+    interface: asset.interface,
+    mint: asset.id,
     json: null,
     jsonLoaded: false,
     name: asset.content.metadata.name,
     symbol: asset.content.metadata.symbol,
     uri: asset.content.json_uri,
-    creators: asset.creators.map((creator) => ({
-      ...creator,
-      address: new web3.PublicKey(creator.address),
-    })),
+    sellerFeeBasisPoints: asset.royalty.basis_points,
+    primarySaleHappened: asset.royalty.primary_sale_happened,
+    tokenStandard: asset.content.metadata.token_standard,
+    creators: asset.creators,
     collection,
+    authority: asset.authorities[0].address,
+    isTokenExtensions:
+      asset.interface === "V1_NFT" && !asset.content?.metadata?.token_standard,
     isProgrammableNft:
       asset.content?.metadata?.token_standard == "ProgrammableNonFungible" ||
       asset.interface === "ProgrammableNFT",
     programmableConfig: {
-      ruleSet: new web3.PublicKey(
-        "eBJLFYPxJmMGKuFwpDWkzxZeUrad92kZRC5BJLpzyT9"
-      ),
+      ruleSet: "eBJLFYPxJmMGKuFwpDWkzxZeUrad92kZRC5BJLpzyT9",
     },
     isCompressed: asset.compression.compressed,
-    frozen: asset.ownership.delegated || !!asset.ownership.delegate,
     compression: !asset.compression.compressed
       ? null
       : {
           leafId: asset.compression.leaf_id,
-          dataHash: new web3.PublicKey(asset.compression.data_hash),
-          creatorHash: new web3.PublicKey(asset.compression.creator_hash),
-          assetHash: new web3.PublicKey(asset.compression.asset_hash),
-          tree: new web3.PublicKey(asset.compression.tree),
+          dataHash: asset.compression.data_hash,
+          creatorHash: asset.compression.creator_hash,
+          assetHash: asset.compression.asset_hash,
+          tree: asset.compression.tree,
         },
+    ownership: {
+      owner: asset.ownership.owner,
+      delegate: asset.ownership.delegate,
+    },
+    editionNonce: asset.supply?.edition_nonce,
     links: asset.content.links,
+    mutable: asset.mutable,
+    frozen:
+      asset.ownership.frozen ||
+      asset.ownership.delegated ||
+      !!asset.ownership.delegate,
+    burnt: asset.burnt,
   };
 };
-
-// export const addBulkTraits = async (client: EdgeClient, traits: Trait[]) => {
-
-// }

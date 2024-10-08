@@ -139,9 +139,6 @@ export const mintMplTMCollection = async (
 };
 require("dotenv").config();
 
-const RPC_URL = process.env.RPC_URL ?? "https://rpc.eboy.dev/";
-const DAS_API_URL = process.env.DAS_API_URL ?? RPC_URL;
-
 export const mintMplBGCollection = async (
   connection: web3.Connection,
   adminKeypair: web3.Keypair,
@@ -180,7 +177,7 @@ export const mintMplBGCollection = async (
     });
   }
   collectionWithMints.mints = (
-    await fetchHeliusAssets(DAS_API_URL, {
+    await fetchHeliusAssets({
       walletAddress: beneficiery,
       collectionAddress: collectionMint,
     })

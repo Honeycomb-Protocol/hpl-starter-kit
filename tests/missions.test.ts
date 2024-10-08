@@ -29,7 +29,6 @@ import {
 } from "@honeycomb-protocol/edge-client";
 import {
   mintAssets,
-  DAS_API_URL,
   adminKeypair,
   authorize,
   client,
@@ -246,7 +245,7 @@ describe("Nectar Missions", () => {
         .then((res) => res.characterModel[0]);
 
       // Wrap Assets
-      const assets = await fetchHeliusAssets(DAS_API_URL, {
+      const assets = await fetchHeliusAssets({
         walletAddress: userKeypair.publicKey,
         collectionAddress: new web3.PublicKey(collection),
       }).then((assets) => assets.filter((n) => !n.frozen).slice(0, 5));

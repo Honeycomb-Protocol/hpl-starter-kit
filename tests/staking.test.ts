@@ -18,7 +18,6 @@ import {
   ResourceStorageEnum,
 } from "@honeycomb-protocol/edge-client";
 import {
-  DAS_API_URL,
   adminKeypair,
   client,
   connection,
@@ -192,7 +191,7 @@ describe("Test Nectar Staking Txs", () => {
 
     if (totalNfts > 0 || totalcNfts > 0) {
       // Wrap Assets
-      const assets = await fetchHeliusAssets(DAS_API_URL, {
+      const assets = await fetchHeliusAssets({
         walletAddress: userKeypair.publicKey,
         collectionAddress: collection,
       }).then((assets) => assets.filter((n) => !n.frozen).slice(0, 5));
