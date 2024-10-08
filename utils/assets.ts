@@ -324,3 +324,27 @@ export const mintAssets = async (
   }
   return response;
 };
+
+interface TraitsInput {
+  [category: string]: {
+    [itemName: string]: string;
+  };
+}
+
+interface TraitsOutput {
+  label: string;
+  name: string;
+  uri: string;
+}
+
+export function transformTraitsData(inputData: TraitsInput): TraitsOutput[] {
+  const result: TraitsOutput[] = [];
+
+  for (const [label, items] of Object.entries(inputData)) {
+    for (const [name, uri] of Object.entries(items)) {
+      result.push({ label, name, uri });
+    }
+  }
+
+  return result;
+}
