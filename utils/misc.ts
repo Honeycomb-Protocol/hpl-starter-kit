@@ -15,6 +15,7 @@ import {
 } from "@solana/spl-account-compression";
 import { PublicKey } from "@solana/web3.js";
 import { errorLog } from ".";
+import type { EdgeClient } from "@honeycomb-protocol/edge-client/client/types";
 
 const TOKEN_METADATA_PROGRAM_ID = new PublicKey(MPL_TOKEN_METADATA_PROGRAM_ID);
 
@@ -479,3 +480,7 @@ export const parseHeliusAsset = (asset: HeluisAsset): Asset => {
     links: asset.content.links,
   };
 };
+
+// export const addBulkTraits = async (client: EdgeClient, traits: Trait[]) => {
+
+// }

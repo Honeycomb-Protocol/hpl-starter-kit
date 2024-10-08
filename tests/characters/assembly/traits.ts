@@ -1,4 +1,4 @@
-import { transformTraitsData } from "../../utils";
+import { transformTraitsData } from "../../../utils";
 
 const config = {
     "Clothes": {

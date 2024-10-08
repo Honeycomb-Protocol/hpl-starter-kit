@@ -1,7 +1,7 @@
 import * as web3 from "@solana/web3.js";
 import fs from "fs";
 import path from "path";
-import createEdgeClient, { AdvancedTreeConfig, BadgesCondition, Project, Transaction, Transactions } from "@honeycomb-protocol/edge-client";
+import createEdgeClient, { AdvancedTreeConfig, BadgesCondition, CharacterConfigInput, CharacterTraitInput, MintAsInput, MintAsKind, Project, Transaction, Transactions } from "@honeycomb-protocol/edge-client";
 import {
   sendTransactionsForTests as sendTransactionsT,
   sendTransactionForTests as sendTransactionT,
@@ -30,8 +30,8 @@ export function wait(seconds = 2): Promise<void> {
   });
 }
 
-export const API_URL = process.env.API_URL ?? "https://edge.eboy.dev/";
-export const RPC_URL = process.env.RPC_URL ?? "https://rpc.eboy.dev/";
+export const API_URL = process.env.API_URL ?? "https://edge.test.honeycombprotocol.com/";
+export const RPC_URL = process.env.RPC_URL ?? "https://rpc.test.honeycombprotocol.com/";
 export const DAS_API_URL = process.env.DAS_API_URL ?? RPC_URL;
 
 export const connection = new web3.Connection(RPC_URL, {
@@ -287,6 +287,129 @@ export async function createCharacterModel(
         params: group.toString(),
       })),
     },
+    project: project.address,
+    authority: adminKeypair.publicKey.toString(),
+    payer: adminKeypair.publicKey.toString(),
+  });
+
+  await sendTransaction(
+    createTx,
+    [adminKeypair],
+    "createCreateCharacterModelTransaction"
+  );
+
+  const {
+    createCreateCharactersTreeTransaction: { tx: createTreeTx },
+  } = await client.createCreateCharactersTreeTransaction({
+    treeConfig: {
+      advanced: treeConfig,
+    },
+    project: project.address,
+    characterModel: characterModelAddress,
+    authority: adminKeypair.publicKey.toString(),
+    payer: adminKeypair.publicKey.toString(),
+  });
+
+  await sendTransaction(
+    createTreeTx,
+    [adminKeypair],
+    "createCreateCharactersTreeTransaction"
+  );
+
+  const characterModel = await client
+    .findCharacterModels({
+      addresses: [characterModelAddress],
+    })
+    .then((res) => res.characterModel[0]);
+  expect(characterModel).toBeTruthy();
+
+  return characterModel;
+}
+
+export async function createAssemblerConfig(
+  project: Project,
+  order: string[],
+  traits: CharacterTraitInput[]
+) {
+  const {
+    createCreateAssemblerConfigTransaction: {
+      tx: txResponse,
+      assemblerConfig: assemblerConfigAddress,
+      treeAddress: assemblerTreeAddressT,
+    },
+  } = await client.createCreateAssemblerConfigTransaction({
+    treeConfig: {
+      // advanced: {
+      //   maxDepth: 14,
+      //   maxBufferSize: 64,
+      //   canopyDepth: 6,
+      // },
+      basic: {
+        numAssets: 100_000,
+      },
+    },
+    ticker: makeid(5),
+    order,
+    project: project.address,
+    authority: adminKeypair.publicKey.toString(),
+    payer: adminKeypair.publicKey.toString(),
+  });
+
+  await sendTransaction(
+    txResponse,
+    [adminKeypair],
+    "createCreateAssemblerConfigTransaction"
+  );
+
+  const assemblerConfig = await client
+    .findAssemblerConfig({
+      addresses: [assemblerConfigAddress.toString()],
+    })
+    .then((res) => res.assemblerConfig[0]);
+  expect(assemblerConfig).toBeTruthy();
+
+  if (traits.length) {
+    const { createAddCharacterTraitsTransactions: txResponse } =
+      await client.createAddCharacterTraitsTransactions({
+        traits,
+        assemblerConfig: assemblerConfig.address,
+        authority: adminKeypair.publicKey.toString(),
+        payer: adminKeypair.publicKey.toString(),
+      });
+
+    await sendTransactions(
+      txResponse,
+      [adminKeypair],
+      "createUpdateAssemblerConfigTransaction"
+    );
+
+    const characterTraits = await client
+      .findCharacterTraits({
+        trees: assemblerConfig.merkle_trees.merkle_trees,
+      })
+      .then((res) => res.characterTrait);
+
+    expect(characterTraits).toBeTruthy();
+    expect(characterTraits.length).toBe(traits.length);
+  }
+
+  return assemblerConfig;
+}
+
+export async function createCharacterModelRaw(
+  project: Project,
+  config: CharacterConfigInput,
+  treeConfig: AdvancedTreeConfig,
+  mintAs: MintAsInput = { kind: MintAsKind.MplCore }
+) {
+  const {
+    createCreateCharacterModelTransaction: {
+      tx: createTx,
+      characterModel: characterModelAddress,
+    },
+  } = await client.createCreateCharacterModelTransaction({
+    config,
+    mintAs,
     project: project.address,
     authority: adminKeypair.publicKey.toString(),
     payer: adminKeypair.publicKey.toString(),
