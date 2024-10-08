@@ -323,8 +323,8 @@ export const mintAssets = async (
 };
 
 interface TraitsInput {
-  [category: string]: {
-    [itemName: string]: string;
+  [label: string]: {
+    [name: string]: string;
   };
 }
 
