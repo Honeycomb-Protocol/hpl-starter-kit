@@ -24,7 +24,6 @@ describe("Hive Control Users n Profiles", () => {
   let profile: Profile;
 
   const userInfo: UserInfoInput = {
-    username: "hcDev",
     name: "Honeycomb Developer",
     bio: "This user is created for testing purposes",
     pfp: "https://lh3.googleusercontent.com/-Jsm7S8BHy4nOzrw2f5AryUgp9Fym2buUOkkxgNplGCddTkiKBXPLRytTMXBXwGcHuRr06EvJStmkHj-9JeTfmHsnT0prHg5Mhg",
@@ -32,7 +31,7 @@ describe("Hive Control Users n Profiles", () => {
 
   const profileInfo: ProfileInfoInput = {
     name: `(Profile) ${userInfo.name}`,
-    bio: `This is profile of ${userInfo.username}`,
+    bio: `This is profile of ${userInfo.name}`,
     pfp: "https://lh3.googleusercontent.com/-Jsm7S8BHy4nOzrw2f5AryUgp9Fym2buUOkkxgNplGCddTkiKBXPLRytTMXBXwGcHuRr06EvJStmkHj-9JeTfmHsnT0prHg5Mhg",
   };
 
@@ -69,7 +68,6 @@ describe("Hive Control Users n Profiles", () => {
         .then(({ user: [user] }) => user);
 
       expect(user).toBeTruthy();
-      expect(user.info.username).toBe(userInfo.username);
       expect(user.info.name).toBe(userInfo.name);
       expect(user.info.bio).toBe(userInfo.bio);
       expect(user.info.pfp).toBe(userInfo.pfp);
