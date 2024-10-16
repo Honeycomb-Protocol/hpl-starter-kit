@@ -83,7 +83,15 @@ describe("Hive Control Users n Profiles", () => {
       })
       .then(({ profile: [profile] }) => profile);
 
-    if (!profile) {
+    if (profile) {
+      // If profile already exists, check if it matches the user info (since we are using the same info for both in createNewUserWithProfileTransaction) 
+      expect(profile).toBeTruthy();
+      expect(profile.info.name).toBe(userInfo.name);
+      expect(profile.info.bio).toBe(userInfo.bio);
+      expect(profile.info.pfp).toBe(userInfo.pfp);
+      return;
+    } else {
+      // Otherwise create a new profile with its own info
       if (!accessToken) throw new Error(`Access token not created`);
       const { createNewProfileTransaction: txResponse } =
         await client.createNewProfileTransaction(
@@ -102,25 +110,25 @@ describe("Hive Control Users n Profiles", () => {
               },
           }
         );
-
+  
       await sendTransaction(
         txResponse,
         [userKeypair],
         "createNewProfileTransaction"
       );
-
-      await client
+  
+      profile = await client
         .findProfiles({
           userIds: [user.id],
           projects: [project.address],
         })
-        .then(({ profile: [profileT] }) => (profile = profileT));
+        .then(({ profile: [profile] }) => profile);
+  
+      expect(profile).toBeTruthy();
+      expect(profile.info.name).toBe(profileInfo.name);
+      expect(profile.info.bio).toBe(profileInfo.bio);
+      expect(profile.info.pfp).toBe(profileInfo.pfp);
     }
-
-    expect(profile).toBeTruthy();
-    expect(profile.info.name).toBe(profileInfo.name);
-    expect(profile.info.bio).toBe(profileInfo.bio);
-    expect(profile.info.pfp).toBe(profileInfo.pfp);
   });
 
   it("Update Profile", async () => {
