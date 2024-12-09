@@ -1,4 +1,4 @@
-console.warn = () => { }; // Suppresses console.warn from web3.js
+console.warn = () => {}; // Suppresses console.warn from web3.js
 
 import {
   HPL_HIVE_CONTROL_PROGRAM,
@@ -177,11 +177,11 @@ describe("Nectar Missions", () => {
             },
             ...(merkleTree
               ? [
-                {
-                  kind: "MerkleTree",
-                  params: merkleTree.toString(),
-                },
-              ]
+                  {
+                    kind: "MerkleTree",
+                    params: merkleTree.toString(),
+                  },
+                ]
               : []),
           ],
         },
@@ -214,7 +214,7 @@ describe("Nectar Missions", () => {
     // Create Characters Tree
     if (
       !characterModel.merkle_trees.merkle_trees[
-      characterModel.merkle_trees.active
+        characterModel.merkle_trees.active
       ]
     ) {
       log("Creating Characters Tree");
@@ -700,6 +700,7 @@ describe("Nectar Missions", () => {
         mission: missionAddress,
         characterAddresses: [characterOnMission[0].address],
         authority: userKeypair.publicKey.toString(),
+        userId: user.id,
       },
       lutAddresses: [lookupTableAddress],
     });
@@ -753,6 +754,7 @@ describe("Nectar Missions", () => {
         mission: missionAddress,
         characterAddresses: [characterOnMission[0].address],
         authority: userKeypair.publicKey.toString(),
+        userId: user.id,
       },
       lutAddresses: [lookupTableAddress],
     });
