@@ -19,7 +19,7 @@ install_deps() {
         install_solana_cli
     fi
 
-    read -p "Do you use yarn or npm for package management? (1 for Yarn, 2 for NPM, type anything else to skip dependency installation): " package_manager
+    read -p "Do you use yarn, npm, or bun for package management? (1 for Yarn, 2 for NPM, 3 for Bun, type anything else to skip dependency installation): " package_manager
     if [ "$package_manager" == "1" ]; then
         if ! command -v yarn &> /dev/null; then
             echo "Yarn not found. Installing..."
@@ -30,10 +30,25 @@ install_deps() {
         fi
         yarn install
         yarn global add ts-node
+        rm ./package-lock.json
+        rm ./bun.lockb
     elif [ "$package_manager" == "2" ]; then
         npm install --legacy-peer-deps
         npm install -g ts-node
         rm ./yarn.lock
+        rm ./bun.lockb
+    elif [ "$package_manager" == "3" ]; then
+        if ! command -v bun &> /dev/null; then
+            echo "Bun not found. Installing..."
+            curl -fsSL https://bun.sh/install | bash
+            export BUN_INSTALL="$HOME/.bun"
+            export PATH=$BUN_INSTALL/bin:$PATH
+        else
+            echo "Bun already installed."
+        fi
+        bun install
+        rm ./yarn.lock
+        rm ./package-lock.json
     else
         echo "Skipping dependency installation."
     fi
