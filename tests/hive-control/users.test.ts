@@ -117,6 +117,7 @@ describe("Hive Control Users n Profiles", () => {
         "createNewProfileTransaction"
       );
   
+      // Fetch the new profile to check if it was created successfully
       profile = await client
         .findProfiles({
           userIds: [user.id],
