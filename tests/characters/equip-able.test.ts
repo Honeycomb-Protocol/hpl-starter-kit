@@ -253,6 +253,9 @@ describe("Test Character Manager Txs", () => {
             project: project.address,
             authority: adminKeypair.publicKey.toString(),
             payer: adminKeypair.publicKey.toString(),
+            cooldown: {
+                ejection: 1,
+            }
         });
 
         await sendTransaction(

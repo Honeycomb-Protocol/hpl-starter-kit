@@ -187,6 +187,9 @@ describe("Nectar Missions", () => {
         project: projectAddress.toString(),
         authority: adminKeypair.publicKey.toString(),
         payer: adminKeypair.publicKey.toString(),
+        cooldown: {
+          ejection: 1,
+        }
       });
 
       characterModelAddress = newCharacterModelAddressT;

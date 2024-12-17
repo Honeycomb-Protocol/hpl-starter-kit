@@ -136,6 +136,9 @@ describe("Test Nectar Staking Txs", () => {
         project: projectAddress,
         authority: adminKeypair.publicKey.toString(),
         payer: adminKeypair.publicKey.toString(),
+        cooldown: {
+          ejection: 1,
+        }
       });
       characterModelAddress = characterModelAddressT;
 
