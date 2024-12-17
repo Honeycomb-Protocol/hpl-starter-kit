@@ -17,6 +17,8 @@ import {
 import { ACCESS_TOKEN_DIR, AssetResponse, createAuthorization, readAccessToken } from ".";
 import createLibreplexProgram from "./programs/libreplex_fair_launch";
 import lockfile from "proper-lockfile";
+import { ASSOCIATED_TOKEN_PROGRAM_ID, AuthorityType, createInitializeMetadataPointerInstruction, createInitializeMintCloseAuthorityInstruction, createInitializeMintInstruction, createInitializePermanentDelegateInstruction, ExtensionType, getMintLen, getOrCreateAssociatedTokenAccount, LENGTH_SIZE, mintTo, setAuthority, TOKEN_2022_PROGRAM_ID, TYPE_SIZE } from "@solana/spl-token";
+import { createInitializeInstruction, pack } from "@solana/spl-token-metadata";
 
 try {
   jest.setTimeout(200000);
@@ -449,3 +451,188 @@ export async function createCharacterModelRaw(
 
   return characterModel;
 }
+
+export const createTokenExtensionMint = async (
+  extensions: ExtensionType[],
+  authority: web3.Keypair,
+  params: {
+    name: string;
+    symbol: string;
+    uri: string;
+  }
+) => {
+  const mintKeypair = web3.Keypair.generate();
+  const metadata = {
+    mint: mintKeypair.publicKey,
+    name: params.name,
+    symbol: params.symbol,
+    uri: params.uri,
+    additionalMetadata: [],
+  };
+
+  const mintLen = getMintLen(extensions);
+  const metadataLen = TYPE_SIZE + LENGTH_SIZE + pack(metadata).length;
+  const lamports = await connection.getMinimumBalanceForRentExemption(
+    mintLen + metadataLen
+  );
+
+  const transaction = new web3.Transaction().add(
+    web3.SystemProgram.createAccount({
+      fromPubkey: adminKeypair.publicKey,
+      newAccountPubkey: metadata.mint,
+      space: mintLen,
+      lamports,
+      programId: TOKEN_2022_PROGRAM_ID,
+    })
+  );
+
+  // add mint instructions
+  if (extensions.includes(ExtensionType.MintCloseAuthority))
+    transaction.add(
+      createInitializeMintCloseAuthorityInstruction(
+        metadata.mint,
+        authority.publicKey,
+        TOKEN_2022_PROGRAM_ID
+      )
+    );
+
+  // add permanent delegate instructions
+  if (extensions.includes(ExtensionType.PermanentDelegate))
+    transaction.add(
+      createInitializePermanentDelegateInstruction(
+        metadata.mint,
+        authority.publicKey,
+        TOKEN_2022_PROGRAM_ID
+      )
+    );
+
+  // add metadata pointer instructions
+  if (extensions.includes(ExtensionType.MetadataPointer))
+    transaction.add(
+      createInitializeMetadataPointerInstruction(
+        metadata.mint,
+        authority.publicKey,
+        metadata.mint,
+        TOKEN_2022_PROGRAM_ID
+      )
+    );
+
+  // add mint instructions
+  transaction.add(
+    createInitializeMintInstruction(
+      metadata.mint,
+      6,
+      authority.publicKey,
+      authority.publicKey,
+      TOKEN_2022_PROGRAM_ID
+    )
+  );
+
+  // add metadata instructions
+  transaction.add(
+    createInitializeInstruction({
+      programId: TOKEN_2022_PROGRAM_ID,
+      mint: metadata.mint,
+      metadata: metadata.mint,
+      name: metadata.name,
+      symbol: metadata.symbol,
+      uri: metadata.uri,
+      mintAuthority: authority.publicKey,
+      updateAuthority: authority.publicKey,
+    })
+  );
+
+  await web3.sendAndConfirmTransaction(
+    connection,
+    transaction,
+    [adminKeypair, mintKeypair],
+    {
+      skipPreflight: false,
+      commitment: "confirmed",
+    }
+  );
+
+  return mintKeypair;
+};
+
+export const mintTokensAndRevokeMintAuthority = async (mint: web3.PublicKey) => {
+  // creating an associated token account
+  const tokenAccount = await getOrCreateAssociatedTokenAccount(
+    connection,
+    adminKeypair,
+    mint,
+    adminKeypair.publicKey,
+    false,
+    "confirmed",
+    {
+      commitment: "confirmed",
+      skipPreflight: true,
+    },
+    TOKEN_2022_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID
+  );
+
+  // minting tokens into the account
+  await mintTo(
+    connection,
+    adminKeypair,
+    mint,
+    tokenAccount.address,
+    adminKeypair.publicKey,
+    1000000 * 10 ** 6,
+    [],
+    {
+      commitment: "confirmed",
+      skipPreflight: true,
+    },
+    TOKEN_2022_PROGRAM_ID
+  );
+
+  // revoking permanent delegate authority
+  await setAuthority(
+    connection,
+    adminKeypair,
+    mint,
+    adminKeypair.publicKey,
+    AuthorityType.PermanentDelegate,
+    null,
+    [],
+    {
+      commitment: "confirmed",
+      skipPreflight: true,
+    },
+    TOKEN_2022_PROGRAM_ID
+  );
+
+  // revoking mint close authority
+  await setAuthority(
+    connection,
+    adminKeypair,
+    mint,
+    adminKeypair.publicKey,
+    AuthorityType.CloseMint,
+    null,
+    [],
+    {
+      commitment: "confirmed",
+      skipPreflight: true,
+    },
+    TOKEN_2022_PROGRAM_ID
+  );
+
+  // revoking the freeze authority
+  await setAuthority(
+    connection,
+    adminKeypair,
+    mint,
+    adminKeypair.publicKey,
+    AuthorityType.FreezeAccount,
+    null,
+    [],
+    {
+      commitment: "confirmed",
+      skipPreflight: true,
+    },
+    TOKEN_2022_PROGRAM_ID
+  );
+};
