@@ -1,3 +1,5 @@
+console.warn = () => {}
+
 import { wait } from "@honeycomb-protocol/hive-control";
 import {
     CharacterModel,
