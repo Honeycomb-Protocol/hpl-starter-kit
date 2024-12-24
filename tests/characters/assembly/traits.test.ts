@@ -27,7 +27,6 @@ describe("Test Character Assembly and mint as MplCore", () => {
   beforeAll(async () => {
     project = await createProject();
 
-
     assemblerConfig = await createAssemblerConfig(project, order, traits);
 
     characterModel = await createCharacterModelRaw(
@@ -71,12 +70,14 @@ describe("Test Character Assembly and mint as MplCore", () => {
         project: project.address,
         assemblerConfig: assemblerConfig.address,
         characterModel: characterModel.address,
-        wallet: userKeypair.publicKey.toString(),
+        owner: userKeypair.publicKey.toString(),
+        authority: adminKeypair.publicKey.toString(),
+        lutAddresses: ["2hZXMmXFtKgEoZzjZu6g9NFVtx3J9BRXqE3ZXTrGGCxc"]
       });
 
     await sendTransaction(
       txResponse,
-      [userKeypair],
+      [adminKeypair],
       "createAssembleCharacterTransaction"
     );
 
@@ -113,12 +114,13 @@ describe("Test Character Assembly and mint as MplCore", () => {
         project: project.address,
         assemblerConfig: assemblerConfig.address,
         characterModel: characterModel.address,
-        wallet: userKeypair.publicKey.toString(),
+        authority: adminKeypair.publicKey.toString(),
+        lutAddresses: ["2hZXMmXFtKgEoZzjZu6g9NFVtx3J9BRXqE3ZXTrGGCxc"]
       });
 
     await sendTransaction(
       txResponse,
-      [userKeypair],
+      [adminKeypair],
       "createUpdateCharacterTraitsTransaction"
     );
 
