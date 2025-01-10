@@ -1,7 +1,7 @@
 console.warn = () => {}
 
 import { CharacterModel, Project } from "@honeycomb-protocol/edge-client";
-import { AssetResponse, mintAssets } from "../../utils";
+import { AssetResponse, mintAssets, wait } from "../../utils";
 import {
     adminKeypair,
     client,
@@ -58,7 +58,7 @@ describe("Test Character Manager Txs", () => {
             authority: adminKeypair.publicKey.toString(),
             payer: adminKeypair.publicKey.toString(),
             cooldown: {
-                ejection: 1,
+                ejection: 10,
             }
         });
 
@@ -153,7 +153,41 @@ describe("Test Character Manager Txs", () => {
         }
     });
 
+    it("Unwrap Assets from Character while cooldown in progress", async () => {
+        const preBalance = await connection.getBalance(userKeypair.publicKey);
+    
+        const trees = characterModel.merkle_trees.merkle_trees.map((x) =>
+          x.toString()
+        );
+        const { character } = await client.findCharacters({
+          filters: {
+            owner: userKeypair.publicKey.toString(),
+          },
+          trees,
+        });
+    
+        if (!character?.length) throw new Error("No characters to unwrap");
+    
+        const { createUnwrapAssetsFromCharacterTransactions: txResponse } =
+          await client.createUnwrapAssetsFromCharacterTransactions({
+            characterAddresses: character.map((x) => x!.address),
+            project: project.address,
+            characterModel: characterModel.address,
+            wallet: userKeypair.publicKey.toString(),
+          });
+    
+        await sendTransactions(
+          txResponse,
+          [userKeypair],
+          "createUnwrapAssetsFromCharacterTransactions",
+          {
+            expectFail: true
+          }
+        );
+      });
+
     it("Unwrap Assets from Character", async () => {
+        wait(10);
         const preBalance = await connection.getBalance(userKeypair.publicKey);
 
         const trees = characterModel.merkle_trees.merkle_trees.map((x) =>
