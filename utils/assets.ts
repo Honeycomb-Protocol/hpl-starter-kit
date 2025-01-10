@@ -15,6 +15,7 @@ import {
   Umi,
 } from "@metaplex-foundation/umi";
 import * as web3 from "@solana/web3.js";
+import { CharacterTraitInput } from "@honeycomb-protocol/edge-client";
 import { adminKeypair as adminKP, errorLog, userKeypair } from ".";
 import { create2022Group, mintOne2022Nft } from ".";
 import {
@@ -328,18 +329,12 @@ interface TraitsInput {
   };
 }
 
-interface TraitsOutput {
-  label: string;
-  name: string;
-  uri: string;
-}
-
-export function transformTraitsData(inputData: TraitsInput): TraitsOutput[] {
-  const result: TraitsOutput[] = [];
+export function transformTraitsData(inputData: TraitsInput): CharacterTraitInput[] {
+  const result: CharacterTraitInput[] = [];
 
   for (const [label, items] of Object.entries(inputData)) {
     for (const [name, uri] of Object.entries(items)) {
-      result.push({ label, name, uri });
+      result.push({ layer: label, name, uri });
     }
   }
 

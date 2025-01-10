@@ -122,7 +122,10 @@ export const authorize = async () => {
 export const sendTransactions = async (
   txResponse: Transactions,
   signer: web3.Keypair[],
-  action: string
+  action: string,
+  flags: {
+    expectFail?: boolean;
+  } = {}
 ) => {
   const responses = await sendTransactionsT(
     sseClient,
@@ -133,10 +136,10 @@ export const sendTransactions = async (
       commitment: "processed",
     },
     (response) => {
-      if (response.status !== "Success") {
+      if (!flags.expectFail && response.status !== "Success") {
         errorLog(action, response.signature, response.error);
       }
-      expect(response.status).toBe("Success");
+      expect(response.status).toBe(flags.expectFail ? "Failed" : "Success");
     }
   );
   // expect(responses.length).toBe(txResponse.transactions.length);
