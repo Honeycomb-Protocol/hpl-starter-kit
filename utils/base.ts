@@ -334,69 +334,98 @@ export async function createCharacterModel(
 
 export async function createAssemblerConfig(
   project: Project,
-  order: string[],
-  traits: CharacterTraitInput[]
+  order?: string[],
+  traits?: CharacterTraitInput[]
 ) {
-  const {
-    createCreateAssemblerConfigTransaction: {
-      tx: txResponse,
-      assemblerConfig: assemblerConfigAddress,
-      treeAddress: assemblerTreeAddressT,
-    },
-  } = await client.createCreateAssemblerConfigTransaction({
-    treeConfig: {
-      // advanced: {
-      //   maxDepth: 14,
-      //   maxBufferSize: 64,
-      //   canopyDepth: 6,
-      // },
-      basic: {
-        numAssets: 100_000,
+  let assemblerConfig;
+
+  if (order && order.length) {
+    const {
+      createCreateAssemblerConfigTransaction: {
+        tx: txResponse,
+        assemblerConfig: assemblerConfigAddress,
+        treeAddress: assemblerTreeAddressT,
       },
-    },
-    ticker: makeid(5),
-    order,
-    project: project.address,
-    authority: adminKeypair.publicKey.toString(),
-    payer: adminKeypair.publicKey.toString(),
-  });
+    } = await client.createCreateAssemblerConfigTransaction({
+      treeConfig: {
+        // advanced: {
+        //   maxDepth: 14,
+        //   maxBufferSize: 64,
+        //   canopyDepth: 6,
+        // },
+        basic: {
+          numAssets: 100_000,
+        },
+      },
+      ticker: makeid(5),
+      order,
+      project: project.address,
+      authority: adminKeypair.publicKey.toString(),
+      payer: adminKeypair.publicKey.toString(),
+    });
 
-  await sendTransaction(
-    txResponse,
-    [adminKeypair],
-    "createCreateAssemblerConfigTransaction"
-  );
-
-  const assemblerConfig = await client
-    .findAssemblerConfig({
-      addresses: [assemblerConfigAddress.toString()],
-    })
-    .then((res) => res.assemblerConfig[0]);
-  expect(assemblerConfig).toBeTruthy();
-
-  if (traits.length) {
-    const { createAddCharacterTraitsTransactions: txResponse } =
-      await client.createAddCharacterTraitsTransactions({
-        traits,
-        assemblerConfig: assemblerConfig.address,
-        authority: adminKeypair.publicKey.toString(),
-        payer: adminKeypair.publicKey.toString(),
-      });
-
-    await sendTransactions(
+    await sendTransaction(
       txResponse,
       [adminKeypair],
-      "createUpdateAssemblerConfigTransaction"
+      "createCreateAssemblerConfigTransaction"
     );
 
-    const characterTraits = await client
-      .findCharacterTraits({
-        trees: assemblerConfig.merkle_trees.merkle_trees,
+    assemblerConfig = await client
+      .findAssemblerConfig({
+        addresses: [assemblerConfigAddress.toString()],
       })
-      .then((res) => res.characterTrait);
+      .then((res) => res.assemblerConfig[0]);
+    expect(assemblerConfig).toBeTruthy();
 
-    expect(characterTraits).toBeTruthy();
-    expect(characterTraits.length).toBe(traits.length);
+    if (traits.length) {
+      const { createAddCharacterTraitsTransactions: txResponse } =
+        await client.createAddCharacterTraitsTransactions({
+          traits,
+          assemblerConfig: assemblerConfig.address,
+          authority: adminKeypair.publicKey.toString(),
+          payer: adminKeypair.publicKey.toString(),
+        });
+
+      await sendTransactions(
+        txResponse,
+        [adminKeypair],
+        "createUpdateAssemblerConfigTransaction"
+      );
+
+      const characterTraits = await client
+        .findCharacterTraits({
+          trees: assemblerConfig.merkle_trees.merkle_trees,
+        })
+        .then((res) => res.characterTrait);
+
+      expect(characterTraits).toBeTruthy();
+      expect(characterTraits.length).toBe(traits.length);
+    }
+  } else {
+    const {
+      createCreateAssemblerConfigTransaction: {
+        tx: txResponse,
+        assemblerConfig: assemblerConfigAddress,
+      },
+    } = await client.createCreateAssemblerConfigTransaction({
+      ticker: makeid(5),
+      project: project.address,
+      authority: adminKeypair.publicKey.toString(),
+      payer: adminKeypair.publicKey.toString(),
+    });
+
+    await sendTransaction(
+      txResponse,
+      [adminKeypair],
+      "createCreateAssemblerConfigTransaction"
+    );
+
+    assemblerConfig = await client
+      .findAssemblerConfig({
+        addresses: [assemblerConfigAddress.toString()],
+      })
+      .then((res) => res.assemblerConfig[0]);
+    expect(assemblerConfig).toBeTruthy();
   }
 
   return assemblerConfig;
