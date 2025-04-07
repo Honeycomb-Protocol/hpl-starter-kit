@@ -78,6 +78,9 @@ export const sendTransaction = async (
   txResponse: Transaction,
   signers: web3.Keypair[],
   action?: string,
+  flags: {
+    expectFail?: boolean;
+  } = {},
   logOnSuccess = false
 ) => {
   const response = await sendTransactionT(
@@ -96,7 +99,7 @@ export const sendTransaction = async (
   if (logOnSuccess || response.status !== "Success") {
     errorLog(action, response.status, response.signature, response.error);
   }
-  expect(response.status).toBe("Success");
+  expect(response.status).toBe(flags.expectFail ? "Failed" : "Success");
   return response;
 };
 
