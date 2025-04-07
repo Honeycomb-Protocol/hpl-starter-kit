@@ -7,7 +7,6 @@ import {
   MintAsKind,
   Project,
 } from "@honeycomb-protocol/edge-client";
-// import { fetchDasAssets } from "../../../edge/utils/asset";
 import {
   adminKeypair,
   client,
@@ -16,7 +15,6 @@ import {
   createCharacterModelRaw,
   createProject,
   fetchHeliusAssets,
-  RPC_URL,
   sendTransaction,
   sendTransactions,
   userKeypair,
@@ -67,12 +65,13 @@ describe("Test Assembled Character Minting as different assets", () => {
         project: project.address,
         assemblerConfig: assemblerConfig.address,
         characterModel: characterModel.address,
-        wallet: userKeypair.publicKey.toString(),
+        owner: userKeypair.publicKey.toString(),
+        authority: adminKeypair.publicKey.toString(),
       });
 
     await sendTransaction(
       createAssembleCharacterTransaction,
-      [userKeypair],
+      [adminKeypair],
       "createAssembleCharacterTransaction"
     );
     const postAssembleBalance = await connection.getBalance(
