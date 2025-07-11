@@ -698,10 +698,10 @@
   dependencies:
     "@metaplex-foundation/mpl-token-metadata" "2.8.3"
 
-"@honeycomb-protocol/edge-client@0.0.7-beta.6":
-  version "0.0.7-beta.6"
-  resolved "https://registry.yarnpkg.com/@honeycomb-protocol/edge-client/-/edge-client-0.0.7-beta.6.tgz#07fed5622119145c7a9b1321e5e139af265692dd"
-  integrity sha512-sW7W1eqm0Y9crVeCPLfLSOuQtNyGIJLiS9GeZrohIRBi2Ti4N84HyXgKtUIvkeaOaSxaE9oTbZACFIQ780qLgQ==
+"@honeycomb-protocol/edge-client@0.0.7-beta.15":
+  version "0.0.7-beta.15"
+  resolved "https://registry.yarnpkg.com/@honeycomb-protocol/edge-client/-/edge-client-0.0.7-beta.15.tgz#cd5056301fa5d51259d3609d286b4677c6546938"
+  integrity sha512-mwhMGXRyNt3TGV6ecSYQAs76znsipYxRaNfSzUMrQBa1vMnmEtofePPO4DJQeHGJz8pfQ/0jCmzzBhVH3cBtsw==
   dependencies:
     "@urql/core" "^5.0.5"
     graphql latest
