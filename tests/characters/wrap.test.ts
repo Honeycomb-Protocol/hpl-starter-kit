@@ -13,9 +13,9 @@ import {
     userKeypair,
 } from "../../utils";
 
-const totalMplCoreNfts = 1;
-const totalNfts = 1;
-const totalcNfts = 1;
+const totalMplCoreNfts = 0;
+const totalNfts = 3;
+const totalcNfts = 2;
 const totalExtensionsNft = 0;
 
 describe("Test Character Manager Txs", () => {
