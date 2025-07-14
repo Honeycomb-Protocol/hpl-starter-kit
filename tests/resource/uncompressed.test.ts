@@ -302,7 +302,9 @@ describe("Uncompressed resources tests", () => {
                 tx,
                 [userKeypair],
                 "createTransferResourceTransaction" + resource.address,
-                true
+                {
+                    expectFail: true,
+                }
             );
         }
     });
