@@ -526,9 +526,6 @@ describe("resource fungible token ledger state", () => {
         tx,
         [userKeypair],
         "createTransferResourceTransaction" + resource.address,
-        {
-          expectFail: false,
-        }
       );
     }
 
