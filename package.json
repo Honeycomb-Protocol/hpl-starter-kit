@@ -12,7 +12,7 @@
     "@coral-xyz/anchor": "0.28.0",
     "@honeycomb-protocol/character-manager": "^0.0.2-beta.23",
     "@honeycomb-protocol/currency-manager": "^0.0.84-beta.2",
-    "@honeycomb-protocol/edge-client": "0.0.7-beta.14",
+    "@honeycomb-protocol/edge-client": "0.0.7-beta.15",
     "@honeycomb-protocol/hive-control": "^0.2.19-beta.18",
     "@honeycomb-protocol/nectar-missions": "^0.1.45-beta.29",
     "@honeycomb-protocol/resource-manager": "^0.0.2-beta.26",

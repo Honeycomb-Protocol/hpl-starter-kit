@@ -125,7 +125,7 @@ describe("Hive Control Projects with Subsidy", () => {
         modifyDelegation: {
           delegation: {
             HiveControl: {
-              permission: HiveControlPermissionInput.ManageProfiles,
+              permission: HiveControlPermissionInput.ManageServices,
             },
           },
         },
